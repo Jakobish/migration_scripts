@@ -51,7 +51,7 @@ function Select-Website {
     Write-Host ""
     $choice = Read-Host "Select a site number"
 
-    if ($choice -notmatch '^\d+$' -or $choice -lt 1 -or $choice -gt $sites.Count) {
+    if ($choice -lt 1 -or $choice -gt $sites.Count) {
         Write-Host "Invalid selection." -ForegroundColor Red
         return $null
     }
@@ -68,8 +68,8 @@ function Start-IISMigration {
     Write-Host "Selected site: $siteName" -ForegroundColor Green
     Write-Host ""
 
-    $destServer = Read-Host "Enter destination server (name or IP)"
-    if ([string]::IsNullOrWhiteSpace($destServer)) {
+    $destinationIPaddress = Read-Host "Enter destination server IP"
+    if ([string]::IsNullOrWhiteSpace($destinationIPaddress)) {
         Write-Host "Destination cannot be empty." -ForegroundColor Red
         return
     }
@@ -86,10 +86,10 @@ function Start-IISMigration {
     $cmd += "`"$msdeploy`""
     $cmd += "-verb:sync"
     $cmd += "-source:appHostConfig=`"$siteName`""
-    $cmd += "-dest:appHostConfig=`"$siteName`",computerName=`"$destServer`""
+    $cmd += "-dest:appHostConfig=`"$siteName`",computerName=`"$destinationIPaddress`""
 
     # Auto-binding replacement rule (virtualDirectory / bindings)
-    $cmd += "-replace:objectName=binding,match=""\d{1,3}(\.\d{1,3}){3}"",replace=""$destServer"""
+    $cmd += "-replace:objectName=binding,match=""\d{1,3}(\.\d{1,3}){3}"",replace=""$destinationIPaddress"""
 
     # Enable required links
     $cmd += "-enableLink:AppPoolExtension"
@@ -102,8 +102,8 @@ function Start-IISMigration {
         $cmd += "-disableLink:ContentExtension"
     }
 
-    $cmd += "-retryAttempts:3"
-    $cmd += "-retryInterval:5000"
+    #$cmd += "-retryAttempts:3"
+    #$cmd += "-retryInterval:5000"
 
     $finalCommand = $cmd -join " "
 

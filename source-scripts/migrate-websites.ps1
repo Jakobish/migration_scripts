@@ -1,7 +1,7 @@
 param(
     [int]$StartIndex = 0,
-    [int]$BatchSize = 10,
-    [string]$DestinationServer = "NEW-SERVER",
+    [int]$BatchSize = 1,
+    [string]$DestinatoinServerIP = "1.1.1.1",
     [string]$DestUsername = "",
     [SecureString]$DestPassword = "",
     [switch]$WhatIf
@@ -29,16 +29,16 @@ $subset = $sites | Select-Object -Skip $StartIndex -First $BatchSize
 
 foreach ($site in $subset)
 {
-    $sitename = $site.Name
-    $phys = $site.PhysicalPath
-    $pool = (Get-WebConfigurationProperty "system.applicationHost/sites/site[@name='$name']/application[@path='/']" -Name applicationPool)
+    $name = $site.Name
+  #  $phys = $site.PhysicalPath
+ #  $pool = (Get-WebConfigurationProperty "system.applicationHost/sites/site[@name='$name']/application[@path='/']" -Name applicationPool)
 
     # If app pool returned as object, extract string
-    if ($pool -is [System.Array]) {
-        $pool = $pool[0]
-    }
+ #   if ($pool -is [System.Array]) {
+  #      $pool = $pool[0]
+  #  }
 
-    $appPoolIdentity = "IIS APPPOOL\$pool"
+   # $appPoolIdentity = "IIS APPPOOL\$pool"
 
     $timestamp = (Get-Date).ToString("yyyy-MM-dd_HH-mm-ss")
     $siteLog = "$logsDir\$name-$timestamp.log"
@@ -53,35 +53,24 @@ foreach ($site in $subset)
         "`"$msdeploy`"",
         "-verb:sync",
         "-source:appHostConfig=`"$name`"",
-        "-dest:appHostConfig=`"$name`",computerName=`"$DestinationServer`",userName=`"$DestUsername`",password=`"$DestPassword`"",
-        "-enableLink:AppPoolExtension",
-        "-enableLink:ContentExtension",
-        "-enableLink:CertificateExtension",
-        "-retryAttempts:3",
-        "-retryInterval:5000"
+        "-dest:auto,computerName=`"$DestinatoinServerIP`",includeACLs=`"true`"",
+        "-enableLink:AppPoolExtension"
+        
+#      "-enableLink:ContentExtension",
+#     "-enableLink:CertificateExtension",
+#        "-retryAttempts:3",
+ #       "-retryInterval:5000"
     ) -join " "
 
-    #
-    # ---- ACL assignment (setAcl) ----
-    # According to MS Docs: msdeploy.exe -verb:sync -source:setAcl -dest:setAcl="c:\site",setAclUser="user",setAclAccess=Modify
-    #
-    $cmdACL = @(
-        "`"$msdeploy`"",
-        "-verb:sync",
-        "-source:setAcl",
-        "-dest:setAcl=`"$phys`",setAclUser=`"$appPoolIdentity`",setAclAccess=Modify",
-        "-retryAttempts:3",
-        "-retryInterval:3000"
-    ) -join " "
-
+  
     # WHAT-IF
     if ($WhatIf)
     {
         "WHATIF: $cmdSync" | Tee-Object -FilePath $mainLog -Append
-        "WHATIF: $cmdACL"  | Tee-Object -FilePath $mainLog -Append
+       # "WHATIF: $cmdACL"  | Tee-Object -FilePath $mainLog -Append
 
         "WHATIF: $cmdSync" | Out-File $siteLog -Encoding UTF8
-        "WHATIF: $cmdACL"  | Out-File $siteLog -Append -Encoding UTF8
+       # "WHATIF: $cmdACL"  | Out-File $siteLog -Append -Encoding UTF8
 
         continue
     }
@@ -91,7 +80,7 @@ foreach ($site in $subset)
         & cmd.exe /c $cmdSync 2>&1 | Tee-Object -FilePath $siteLog -Append
 
         # execute ACL assignment
-        & cmd.exe /c $cmdACL 2>&1  | Tee-Object -FilePath $siteLog -Append
+       # & cmd.exe /c $cmdACL 2>&1  | Tee-Object -FilePath $siteLog -Append
     }
     catch {
         "ERROR on site $sitename : $_" | Tee-Object -FilePath $mainLog -Append
