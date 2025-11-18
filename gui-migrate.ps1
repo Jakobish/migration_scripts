@@ -1,6 +1,44 @@
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
+function Show-FatalMessage {
+    param([string]$Message)
+    [System.Windows.Forms.MessageBox]::Show($Message, "MSDeploy PowerShell GUI") | Out-Null
+}
+
+try {
+    Import-Module WebAdministration -ErrorAction Stop
+}
+catch {
+    Show-FatalMessage "Unable to load WebAdministration module. Install IIS management tools before running this GUI."
+    return
+}
+
+function Test-IsAdministrator {
+    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
+    return $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
+}
+
+if (-not (Test-IsAdministrator)) {
+    Show-FatalMessage "This GUI must be launched from an elevated (Run as administrator) PowerShell session."
+    return
+}
+
+$msDeployPath = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+
+if (-not (Test-Path $msDeployPath)) {
+    Show-FatalMessage "Microsoft Web Deploy V3 was not found at `"$msDeployPath`". Install it before continuing."
+    return
+}
+
+$scriptRoot = Split-Path -Parent $MyInvocation.MyCommand.Definition
+$logDirectory = Join-Path $scriptRoot "site-logs"
+if (-not (Test-Path $logDirectory)) {
+    New-Item -Path $logDirectory -ItemType Directory | Out-Null
+}
+$logFile = Join-Path $logDirectory ("gui-msdeploy-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
+
 # ===============================================================
 # DATA SOURCES
 # ===============================================================
@@ -55,7 +93,7 @@ $flags = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MSDeploy PowerShell GUI"
-$form.Size = New-Object System.Drawing.Size(1200, 820)
+$form.Size = New-Object System.Drawing.Size(1200, 1020)
 $form.StartPosition = "CenterScreen"
 
 # ===============================================================
@@ -189,6 +227,7 @@ $right.Controls.Add($lblPass)
 $txtPass = New-Object System.Windows.Forms.TextBox
 $txtPass.Location = "175,205"
 $txtPass.Width = 350
+$txtPass.UseSystemPasswordChar = $true
 $right.Controls.Add($txtPass)
 
 $lblAuth = New-Object System.Windows.Forms.Label
@@ -200,7 +239,7 @@ $cbAuth = New-Object System.Windows.Forms.ComboBox
 $cbAuth.Location = "175,245"
 $cbAuth.Width = 350
 $cbAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
-$cbAuth.SelectedIndex = 0
+$cbAuth.SelectedIndex = -1
 $right.Controls.Add($cbAuth)
 
 # ===============================================================
@@ -263,65 +302,108 @@ $cmdBox = New-Object System.Windows.Forms.TextBox
 $cmdBox.Multiline = $true
 $cmdBox.ScrollBars = "Vertical"
 $cmdBox.Location = "10,740"
-$cmdBox.Size = "1130,50"
+$cmdBox.Size = "1130,80"
 $cmdBox.Font = "Consolas,10"
+$cmdBox.ReadOnly = $true
 $form.Controls.Add($cmdBox)
+
+$logBox = New-Object System.Windows.Forms.TextBox
+$logBox.Multiline = $true
+$logBox.ScrollBars = "Vertical"
+$logBox.Location = "10,830"
+$logBox.Size = "1130,120"
+$logBox.Font = "Consolas,9"
+$logBox.ReadOnly = $true
+$form.Controls.Add($logBox)
 
 # ===============================================================
 # COMMAND BUILDER
 # ===============================================================
 
-function Update-Command {
+function Get-MsDeployCommandString {
+    param(
+        [switch]$IncludePassword
+    )
 
     $verb = $cbVerb.SelectedItem
     $srcProv = $cbSrcProv.SelectedItem
     $dstProv = $cbDstProv.SelectedItem
 
-    # Build source
-    $src = "-source:$srcProv=`"$($txtSrcMain.Text)`""
-
-    # Build dest
-    $dest = "-dest:$dstProv"
-
-    if ($txtIP.Text.Trim() -ne "") {
-        $dest += ",computerName=`"$($txtIP.Text)`""
-    }
-    if ($txtUser.Text.Trim() -ne "") {
-        $dest += ",userName=`"$($txtUser.Text)`""
-    }
-    if ($txtPass.Text.Trim() -ne "") {
-        $dest += ",password=`"$($txtPass.Text)`""
-    }
-    if ($cbAuth.SelectedItem -ne "") {
-        $dest += ",authType=`"$($cbAuth.SelectedItem)`""
+    if (-not $verb -or -not $srcProv -or -not $dstProv) {
+        return ""
     }
 
-    # Flags
+    $srcValue = $txtSrcMain.Text.Trim()
+    $src = if ($srcValue) { "-source:$srcProv=`"$srcValue`"" } else { "-source:$srcProv" }
+
+    $dstValue = $txtDstMain.Text.Trim()
+    $dest = if ($dstValue) { "-dest:$dstProv=`"$dstValue`"" } else { "-dest:$dstProv" }
+
+    $destAttributes = @()
+
+    if ($txtIP.Text.Trim()) {
+        $destAttributes += "computerName=`"$($txtIP.Text.Trim())`""
+    }
+    if ($txtUser.Text.Trim()) {
+        $destAttributes += "userName=`"$($txtUser.Text.Trim())`""
+    }
+    if ($txtPass.Text.Trim()) {
+        $passwordValue = if ($IncludePassword) { $txtPass.Text.Trim() } else { "<hidden>" }
+        $destAttributes += "password=`"$passwordValue`""
+    }
+    if ($cbAuth.SelectedItem) {
+        $destAttributes += "authType=`"$($cbAuth.SelectedItem)`""
+    }
+
+    if ($destAttributes.Count -gt 0) {
+        $dest += "," + ($destAttributes -join ",")
+    }
+
     $extras = @()
-
     foreach ($f in $lstFlags.CheckedItems) { $extras += $f }
     foreach ($r in $lstRules.CheckedItems) { $extras += "-$r" }
     foreach ($l in $lstELinks.CheckedItems) { $extras += "-$l" }
     foreach ($l in $lstDLinks.CheckedItems) { $extras += "-$l" }
 
-    # Final command
-    $cmd = @(
-        "msdeploy",
+    $cmdParts = @(
+        "`"$msDeployPath`"",
         "-verb:$verb",
         $src,
         $dest
     ) + $extras
 
-    $cmdBox.Text = $cmd -join " "
+    return $cmdParts -join " "
+}
+
+function Update-Command {
+    $command = Get-MsDeployCommandString
+    if ([string]::IsNullOrWhiteSpace($command)) {
+        $cmdBox.Text = ""
+        return
+    }
+    $cmdBox.Text = "cmd.exe /c $command"
+}
+
+function Write-LogLines {
+    param(
+        [string[]]$Lines
+    )
+
+    if (-not $Lines) {
+        return
+    }
+
+    $logText = ($Lines -join [Environment]::NewLine) + [Environment]::NewLine
+    $logBox.AppendText($logText)
 }
 
 function Invoke-MsDeployCommand {
     param(
-        [string]$CommandText,
         [switch]$DryRun
     )
 
-    $command = $CommandText.Trim()
+    $command = Get-MsDeployCommandString -IncludePassword
+    $displayCommand = Get-MsDeployCommandString
 
     if (-not $command) {
         [System.Windows.Forms.MessageBox]::Show("Build a command before executing.", "MSDeploy PowerShell GUI") | Out-Null
@@ -330,9 +412,31 @@ function Invoke-MsDeployCommand {
 
     if ($DryRun -and $command -notmatch "(^|\s)-whatIf($|\s)") {
         $command += " -whatIf"
+        if ($displayCommand -notmatch "(^|\s)-whatIf($|\s)") {
+            $displayCommand += " -whatIf"
+        }
     }
 
-    Start-Process -FilePath "cmd.exe" -ArgumentList "/c", $command -Wait
+    $timestamp = (Get-Date).ToString("u")
+    $header = "[{0}] cmd.exe /c {1}" -f $timestamp, $displayCommand
+    Add-Content -Path $logFile -Value $header
+    Write-LogLines $header
+
+    $output = & cmd.exe /c $command 2>&1 | Tee-Object -FilePath $logFile -Append
+
+    if ($output) {
+        Write-LogLines $output
+    }
+    else {
+        Write-LogLines @("[{0}] Command completed with no output." -f $timestamp)
+    }
+
+    if ($LASTEXITCODE -eq 0) {
+        [System.Windows.Forms.MessageBox]::Show("msdeploy command completed successfully.`nLog: $logFile", "MSDeploy PowerShell GUI") | Out-Null
+    }
+    else {
+        [System.Windows.Forms.MessageBox]::Show("msdeploy command failed (exit code $LASTEXITCODE). Review $logFile for details.", "MSDeploy PowerShell GUI") | Out-Null
+    }
 }
 
 # Update preview on change
@@ -359,25 +463,25 @@ foreach ($ctl in @($lstFlags, $lstRules, $lstELinks, $lstDLinks)) {
 
 $btnExecute = New-Object System.Windows.Forms.Button
 $btnExecute.Text = "Execute"
-$btnExecute.Location = "10,795"
+$btnExecute.Location = "10,965"
 $btnExecute.Size = "120,30"
-$btnExecute.Add_Click({
-        Invoke-MsDeployCommand -CommandText $cmdBox.Text
+    $btnExecute.Add_Click({
+        Invoke-MsDeployCommand
     })
 $form.Controls.Add($btnExecute)
 
 $btnDry = New-Object System.Windows.Forms.Button
 $btnDry.Text = "Dry Run (-whatIf)"
-$btnDry.Location = "150,795"
+$btnDry.Location = "150,965"
 $btnDry.Size = "150,30"
-$btnDry.Add_Click({
-        Invoke-MsDeployCommand -CommandText $cmdBox.Text -DryRun
+    $btnDry.Add_Click({
+        Invoke-MsDeployCommand -DryRun
     })
 $form.Controls.Add($btnDry)
 
 $btnCopy = New-Object System.Windows.Forms.Button
 $btnCopy.Text = "Copy"
-$btnCopy.Location = "320,795"
+$btnCopy.Location = "320,965"
 $btnCopy.Size = "120,30"
 $btnCopy.Add_Click({
         $command = $cmdBox.Text.Trim()
