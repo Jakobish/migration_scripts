@@ -59,6 +59,27 @@ $providerMainValueLabel = @{
     "auto"          = "Main Value (optional):"
 }
 
+$providerInputOptions = @{
+    "appHostConfig" = @{ Mode = "Site" }
+    "contentPath"   = @{ Mode = "Folder" }
+    "dirPath"       = @{ Mode = "Folder" }
+    "filePath"      = @{ Mode = "File" }
+    "package"       = @{
+        Mode   = "File"
+        Filter = "MSDeploy Packages (*.zip)|*.zip|All Files (*.*)|*.*"
+    }
+}
+
+# Helper to retrieve IIS site names for dropdowns
+function Get-IisSiteNames {
+    try {
+        return (Get-ChildItem IIS:\Sites | Select-Object -ExpandProperty Name)
+    }
+    catch {
+        return @()
+    }
+}
+
 # Deployment rules
 $rules = @(
     "enableRule:DoNotDelete",
@@ -144,14 +165,34 @@ $lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
 $lblSrcMain.Location = "10,130"
 $left.Controls.Add($lblSrcMain)
 
+$srcInputPanel = New-Object System.Windows.Forms.Panel
+$srcInputPanel.Location = "150,125"
+$srcInputPanel.Size = "360,30"
+$left.Controls.Add($srcInputPanel)
+
 $txtSrcMain = New-Object System.Windows.Forms.TextBox
-$txtSrcMain.Location = "150,125"
+$txtSrcMain.Location = "0,0"
 $txtSrcMain.Width = 350
-$left.Controls.Add($txtSrcMain)
+$srcInputPanel.Controls.Add($txtSrcMain)
+
+$btnSrcBrowse = New-Object System.Windows.Forms.Button
+$btnSrcBrowse.Text = "Browse..."
+$btnSrcBrowse.Location = "270,0"
+$btnSrcBrowse.Size = "80,23"
+$btnSrcBrowse.Visible = $false
+$srcInputPanel.Controls.Add($btnSrcBrowse)
+
+$cbSrcSites = New-Object System.Windows.Forms.ComboBox
+$cbSrcSites.Location = "0,0"
+$cbSrcSites.Width = 350
+$cbSrcSites.DropDownStyle = "DropDownList"
+$cbSrcSites.Visible = $false
+$srcInputPanel.Controls.Add($cbSrcSites)
 
 # Update label when provider changes
 $cbSrcProv.Add_SelectedIndexChanged({
         $lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
+        Update-ProviderInputMode -Side "Source" -Provider $cbSrcProv.SelectedItem
     })
 
 # ===============================================================
@@ -189,13 +230,200 @@ $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
 $lblDstMain.Location = "10,90"
 $right.Controls.Add($lblDstMain)
 
+$dstInputPanel = New-Object System.Windows.Forms.Panel
+$dstInputPanel.Location = "175,85"
+$dstInputPanel.Size = "360,30"
+$right.Controls.Add($dstInputPanel)
+
 $txtDstMain = New-Object System.Windows.Forms.TextBox
-$txtDstMain.Location = "175,85"
+$txtDstMain.Location = "0,0"
 $txtDstMain.Width = 350
-$right.Controls.Add($txtDstMain)
+$dstInputPanel.Controls.Add($txtDstMain)
+
+$btnDstBrowse = New-Object System.Windows.Forms.Button
+$btnDstBrowse.Text = "Browse..."
+$btnDstBrowse.Location = "270,0"
+$btnDstBrowse.Size = "80,23"
+$btnDstBrowse.Visible = $false
+$dstInputPanel.Controls.Add($btnDstBrowse)
+
+$cbDstSites = New-Object System.Windows.Forms.ComboBox
+$cbDstSites.Location = "0,0"
+$cbDstSites.Width = 350
+$cbDstSites.DropDownStyle = "DropDownList"
+$cbDstSites.Visible = $false
+$dstInputPanel.Controls.Add($cbDstSites)
 
 $cbDstProv.Add_SelectedIndexChanged({
         $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
+        Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
+    })
+
+$providerUiStates = @{
+    "Source" = [ordered]@{
+        TextBox      = $txtSrcMain
+        SiteCombo    = $cbSrcSites
+        BrowseButton = $btnSrcBrowse
+        ProviderList = $cbSrcProv
+        CurrentMode  = "Text"
+        BrowseMode   = $null
+        FileFilter   = $null
+    }
+    "Destination" = [ordered]@{
+        TextBox      = $txtDstMain
+        SiteCombo    = $cbDstSites
+        BrowseButton = $btnDstBrowse
+        ProviderList = $cbDstProv
+        CurrentMode  = "Text"
+        BrowseMode   = $null
+        FileFilter   = $null
+    }
+}
+
+function Set-TextInputLayout {
+    param(
+        [string]$Side,
+        [bool]$ShowBrowseButton
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state) { return }
+
+    if ($ShowBrowseButton) {
+        $state.TextBox.Width = 260
+        $state.BrowseButton.Location = "270,0"
+    }
+    else {
+        $state.TextBox.Width = 350
+    }
+
+    $state.BrowseButton.Visible = $ShowBrowseButton
+    $state.TextBox.Visible = $true
+    $state.SiteCombo.Visible = $false
+}
+
+function Initialize-SiteComboBox {
+    param(
+        [string]$Side
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state) { return }
+
+    $combo = $state.SiteCombo
+    $combo.Items.Clear()
+    $sites = Get-IisSiteNames
+    if ($sites -and $sites.Count -gt 0) {
+        $combo.Items.AddRange($sites)
+        $combo.Enabled = $true
+        $combo.SelectedIndex = 0
+        return $true
+    }
+    else {
+        $combo.Enabled = $false
+        $combo.SelectedIndex = -1
+        return $false
+    }
+}
+
+function Update-ProviderInputMode {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side,
+        [string]$Provider
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state) { return }
+
+    $state.TextBox.Visible = $false
+    $state.SiteCombo.Visible = $false
+    $state.BrowseButton.Visible = $false
+    $state.BrowseMode = $null
+    $state.FileFilter = $null
+
+    if (-not $Provider) {
+        $state.CurrentMode = "Text"
+        $state.TextBox.Visible = $true
+        return
+    }
+
+    $options = $providerInputOptions[$Provider]
+    $mode = if ($options) { $options.Mode } else { "Text" }
+    $state.CurrentMode = $mode
+
+    switch ($mode) {
+        "Site" {
+            if (Initialize-SiteComboBox -Side $Side) {
+                $state.SiteCombo.Visible = $true
+                $state.SiteCombo.Enabled = $true
+                break
+            }
+            else {
+                Set-TextInputLayout -Side $Side -ShowBrowseButton $false
+                $state.CurrentMode = "Text"
+            }
+        }
+        "File" {
+            Set-TextInputLayout -Side $Side -ShowBrowseButton $true
+            $state.BrowseMode = "File"
+            $state.FileFilter = if ($options.Filter) { $options.Filter } else { "All Files (*.*)|*.*" }
+        }
+        "Folder" {
+            Set-TextInputLayout -Side $Side -ShowBrowseButton $true
+            $state.BrowseMode = "Folder"
+        }
+        default {
+            Set-TextInputLayout -Side $Side -ShowBrowseButton $false
+        }
+    }
+}
+
+function Invoke-BrowseDialog {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state -or -not $state.BrowseMode) { return }
+
+    if ($state.BrowseMode -eq "File") {
+        $dialog = New-Object System.Windows.Forms.OpenFileDialog
+        $dialog.Filter = if ($state.FileFilter) { $state.FileFilter } else { "All Files (*.*)|*.*" }
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            $state.TextBox.Text = $dialog.FileName
+        }
+    }
+    elseif ($state.BrowseMode -eq "Folder") {
+        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            $state.TextBox.Text = $dialog.SelectedPath
+        }
+    }
+}
+
+function Get-ProviderMainValue {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state) { return "" }
+
+    switch ($state.CurrentMode) {
+        "Site" {
+            return ([string]$state.SiteCombo.Text).Trim()
+        }
+        default {
+            return ([string]$state.TextBox.Text).Trim()
+        }
+    }
+}
+
+$btnSrcBrowse.Add_Click({
+        Invoke-BrowseDialog -Side "Source"
+    })
+$btnDstBrowse.Add_Click({
+        Invoke-BrowseDialog -Side "Destination"
     })
 
 # Inline attributes (computerName, user, pass, authType)
@@ -333,10 +561,10 @@ function Get-MsDeployCommandString {
         return ""
     }
 
-    $srcValue = $txtSrcMain.Text.Trim()
+    $srcValue = Get-ProviderMainValue -Side "Source"
     $src = if ($srcValue) { "-source:$srcProv=`"$srcValue`"" } else { "-source:$srcProv" }
 
-    $dstValue = $txtDstMain.Text.Trim()
+    $dstValue = Get-ProviderMainValue -Side "Destination"
     $dest = if ($dstValue) { "-dest:$dstProv=`"$dstValue`"" } else { "-dest:$dstProv" }
 
     $destAttributes = @()
@@ -440,7 +668,7 @@ function Invoke-MsDeployCommand {
 }
 
 # Update preview on change
-foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbAuth)) {
+foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbAuth, $cbSrcSites, $cbDstSites)) {
     # ComboBox controls support TextChanged and SelectedIndexChanged
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
     $ctl.Add_SelectedIndexChanged({ Update-Command }) 2>$null
@@ -456,6 +684,9 @@ foreach ($ctl in @($lstFlags, $lstRules, $lstELinks, $lstDLinks)) {
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
     $ctl.Add_ItemCheck({ Start-Sleep -Milliseconds 100; Update-Command }) 2>$null
 }
+
+Update-ProviderInputMode -Side "Source" -Provider $cbSrcProv.SelectedItem
+Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
 
 # ===============================================================
 # RUN BUTTONS
