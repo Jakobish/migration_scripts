@@ -4,11 +4,8 @@ Import-Module (Join-Path $PSScriptRoot "MigrationHelper.psm1")
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-
-function Show-FatalMessage {
-    param([string]$Message)
-    [System.Windows.Forms.MessageBox]::Show($Message, "MSDeploy PowerShell GUI") | Out-Null
-}
+Import-Module (Join-Path $PSScriptRoot "GuiHelpers.psm1")
+Import-Module (Join-Path $PSScriptRoot "GuiStateHelpers.psm1")
 
 try {
     Import-Module WebAdministration -ErrorAction Stop
@@ -16,12 +13,6 @@ try {
 catch {
     Show-FatalMessage "Unable to load WebAdministration module. Install IIS management tools before running this GUI."
     return
-}
-
-function Test-IsAdministrator {
-    $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-    $principal = New-Object Security.Principal.WindowsPrincipal($currentIdentity)
-    return $principal.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
 }
 
 if (-not (Test-IsAdministrator)) {
@@ -170,13 +161,13 @@ function New-ActionButton {
     return $btn
 }
 
-$btnCopySrcToDst = New-ActionButton -Text "Copy Source → Destination" -TooltipText "Mirror all fields from the left side to the right side."
-$btnCopyDstToSrc = New-ActionButton -Text "Copy Destination → Source" -TooltipText "Mirror all fields from the right side to the left side."
-$btnSwapSides = New-ActionButton -Text "Swap Source & Destination" -TooltipText "Exchange both sides so you can easily reverse a migration."
-$btnRefreshSites = New-ActionButton -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
-$btnClearAll = New-ActionButton -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
-$btnSaveState = New-ActionButton -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
-$btnLoadState = New-ActionButton -Text "Load Layout (JSON/XML)" -TooltipText "Load inputs from a previously saved JSON or XML file."
+$btnCopySrcToDst = New-ActionButton -ToolTip $toolTip -Text "Copy Source → Destination" -TooltipText "Mirror all fields from the left side to the right side."
+$btnCopyDstToSrc = New-ActionButton -ToolTip $toolTip -Text "Copy Destination → Source" -TooltipText "Mirror all fields from the right side to the left side."
+$btnSwapSides = New-ActionButton -ToolTip $toolTip -Text "Swap Source & Destination" -TooltipText "Exchange both sides so you can easily reverse a migration."
+$btnRefreshSites = New-ActionButton -ToolTip $toolTip -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
+$btnClearAll = New-ActionButton -ToolTip $toolTip -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
+$btnSaveState = New-ActionButton -ToolTip $toolTip -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
+$btnLoadState = New-ActionButton -ToolTip $toolTip -Text "Load Layout (JSON/XML)" -TooltipText "Load inputs from a previously saved JSON or XML file."
 
 $actionPanel.Controls.Add($btnCopySrcToDst)
 $actionPanel.Controls.Add($btnCopyDstToSrc)
@@ -186,24 +177,24 @@ $actionPanel.Controls.Add($btnClearAll)
 $actionPanel.Controls.Add($btnSaveState)
 $actionPanel.Controls.Add($btnLoadState)
 
-$btnCopySrcToDst.Add_Click({ Copy-SideConfiguration -From "Source" -To "Destination" })
-$btnCopyDstToSrc.Add_Click({ Copy-SideConfiguration -From "Destination" -To "Source" })
-$btnSwapSides.Add_Click({ Switch-SideConfiguration })
-$btnRefreshSites.Add_Click({ Initialize-AllSiteCombos })
+$btnCopySrcToDst.Add_Click({ Copy-SideConfigurationLocal -From "Source" -To "Destination" })
+$btnCopyDstToSrc.Add_Click({ Copy-SideConfigurationLocal -From "Destination" -To "Source" })
+$btnSwapSides.Add_Click({ Switch-SideConfigurationLocal })
+$btnRefreshSites.Add_Click({ Update-AllSiteCombosLocal; Update-Command })
 $btnClearAll.Add_Click({ Clear-AllInputs })
 $btnSaveState.Add_Click({
         $dialog = New-Object System.Windows.Forms.SaveFileDialog
         $dialog.Filter = "JSON files (*.json)|*.json|XML files (*.xml)|*.xml|All files (*.*)|*.*"
         $dialog.DefaultExt = "json"
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            Save-GuiStateToFile -Path $dialog.FileName
+            Save-GuiState -Path $dialog.FileName
         }
     })
 $btnLoadState.Add_Click({
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
         $dialog.Filter = "JSON files (*.json)|*.json|XML files (*.xml)|*.xml|All files (*.*)|*.*"
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            Read-GuiStateFromFile -Path $dialog.FileName
+            Load-GuiState -Path $dialog.FileName
         }
     })
 
@@ -287,7 +278,7 @@ $srcInputPanel.Controls.Add($cbSrcSites)
 # Update label when provider changes
 $cbSrcProv.Add_SelectedIndexChanged({
         $lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
-        Update-ProviderInputMode -Side "Source" -Provider $cbSrcProv.SelectedItem
+        Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
     })
 
 # ===============================================================
@@ -451,7 +442,7 @@ $dstInputPanel.Controls.Add($cbDstSites)
 
 $cbDstProv.Add_SelectedIndexChanged({
         $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
-        Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
+        Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
     })
 
 # ===============================================================
@@ -543,408 +534,64 @@ $providerUiStates = @{
     }
 }
 
-function Set-TextInputLayout {
-    param(
-        [string]$Side,
-        [bool]$ShowBrowseButton
-    )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state) { return }
-
-    if ($ShowBrowseButton) {
-        $state.TextBox.Width = 260
-        $state.BrowseButton.Location = "270,0"
-    }
-    else {
-        $state.TextBox.Width = 350
-    }
-
-    $state.BrowseButton.Visible = $ShowBrowseButton
-    $state.TextBox.Visible = $true
-    $state.SiteCombo.Visible = $false
-}
-
-function Initialize-SiteComboBox {
-    param(
-        [string]$Side
-    )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state) { return }
-
-    $combo = $state.SiteCombo
-    $combo.Items.Clear()
-    $sites = Get-IisSiteNames
-    if ($sites -and $sites.Count -gt 0) {
-        $combo.Items.AddRange($sites)
-        $combo.Enabled = $true
-        $combo.SelectedIndex = 0
-        return $true
-    }
-    else {
-        $combo.Enabled = $false
-        $combo.SelectedIndex = -1
-        return $false
-    }
-}
-
-function Update-ProviderInputMode {
+# Thin wrappers to keep the main script readable
+function Set-ProviderMode {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side,
         [string]$Provider
     )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state) { return }
-
-    $state.TextBox.Visible = $false
-    $state.SiteCombo.Visible = $false
-    $state.BrowseButton.Visible = $false
-    $state.BrowseMode = $null
-    $state.FileFilter = $null
-
-    if (-not $Provider) {
-        $state.CurrentMode = "Text"
-        $state.TextBox.Visible = $true
-        return
-    }
-
-    $options = $providerInputOptions[$Provider]
-    $mode = if ($options) { $options.Mode } else { "Text" }
-    $state.CurrentMode = $mode
-
-    switch ($mode) {
-        "Site" {
-            if (Initialize-SiteComboBox -Side $Side) {
-                $state.SiteCombo.Visible = $true
-                $state.SiteCombo.Enabled = $true
-                break
-            }
-            else {
-                Set-TextInputLayout -Side $Side -ShowBrowseButton $false
-                $state.CurrentMode = "Text"
-            }
-        }
-        "File" {
-            Set-TextInputLayout -Side $Side -ShowBrowseButton $true
-            $state.BrowseMode = "File"
-            $state.FileFilter = if ($options.Filter) { $options.Filter } else { "All Files (*.*)|*.*" }
-        }
-        "Folder" {
-            Set-TextInputLayout -Side $Side -ShowBrowseButton $true
-            $state.BrowseMode = "Folder"
-        }
-        default {
-            Set-TextInputLayout -Side $Side -ShowBrowseButton $false
-        }
-    }
+    Update-ProviderInputMode -Side $Side -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -Provider $Provider
 }
 
-function Invoke-BrowseDialog {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side
-    )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state -or -not $state.BrowseMode) { return }
-
-    if ($state.BrowseMode -eq "File") {
-        $dialog = New-Object System.Windows.Forms.OpenFileDialog
-        $dialog.Filter = if ($state.FileFilter) { $state.FileFilter } else { "All Files (*.*)|*.*" }
-        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $state.TextBox.Text = $dialog.FileName
-        }
-    }
-    elseif ($state.BrowseMode -eq "Folder") {
-        $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            $state.TextBox.Text = $dialog.SelectedPath
-        }
-    }
+function Get-ProviderValue {
+    param([ValidateSet("Source", "Destination")] [string]$Side)
+    return Get-ProviderMainValue -Side $Side -ProviderUiStates $providerUiStates
 }
 
-function Get-ProviderMainValue {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side
-    )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state) { return "" }
-
-    switch ($state.CurrentMode) {
-        "Site" {
-            return ([string]$state.SiteCombo.Text).Trim()
-        }
-        default {
-            return ([string]$state.TextBox.Text).Trim()
-        }
-    }
+function Update-SiteComboLocal {
+    param([ValidateSet("Source", "Destination")] [string]$Side)
+    Update-SiteCombo -Side $Side -ProviderUiStates $providerUiStates
 }
 
-function Reset-CheckedListBox {
-    param([System.Windows.Forms.CheckedListBox]$List)
-    if (-not $List) { return }
-    for ($i = 0; $i -lt $List.Items.Count; $i++) {
-        $List.SetItemChecked($i, $false)
-    }
+function Update-AllSiteCombosLocal {
+    Update-AllSiteCombos -ProviderUiStates $providerUiStates
 }
 
-function Get-CheckedItems {
-    param([System.Windows.Forms.CheckedListBox]$List)
-    if (-not $List) { return @() }
-    return @($List.CheckedItems | ForEach-Object { [string]$_ })
+function Get-SideConfigurationLocal {
+    param([ValidateSet("Source", "Destination")] [string]$Side)
+    return Get-SideConfiguration -Side $Side -SideControls $sideControls -ProviderUiStates $providerUiStates
 }
 
-function Set-CheckedItems {
-    param(
-        [System.Windows.Forms.CheckedListBox]$List,
-        [object[]]$Items
-    )
-
-    if (-not $List) { return }
-    Reset-CheckedListBox $List
-
-    if (-not $Items) { return }
-
-    foreach ($item in $Items) {
-        $index = $List.Items.IndexOf($item)
-        if ($index -ge 0) {
-            $List.SetItemChecked($index, $true)
-        }
-    }
-}
-
-function Get-GuiState {
-    return [ordered]@{
-        Verb         = $cbVerb.SelectedItem
-        Source       = Get-SideConfiguration -Side "Source"
-        Destination  = Get-SideConfiguration -Side "Destination"
-        Flags        = Get-CheckedItems $lstFlags
-        Rules        = Get-CheckedItems $lstRules
-        EnableLinks  = Get-CheckedItems $lstELinks
-        DisableLinks = Get-CheckedItems $lstDLinks
-    }
-}
-
-function Set-GuiState {
-    param([object]$State)
-    if (-not $State) { return }
-
-    if ($State.Verb -and $cbVerb.Items.Contains($State.Verb)) {
-        $cbVerb.SelectedItem = $State.Verb
-    }
-    elseif ($cbVerb.Items.Count -gt 0) {
-        $cbVerb.SelectedIndex = 0
-    }
-
-    if ($State.Source) {
-        Set-SideConfiguration -Side "Source" -Config $State.Source
-    }
-
-    if ($State.Destination) {
-        Set-SideConfiguration -Side "Destination" -Config $State.Destination
-    }
-
-    Set-CheckedItems -List $lstFlags -Items $State.Flags
-    Set-CheckedItems -List $lstRules -Items $State.Rules
-    Set-CheckedItems -List $lstELinks -Items $State.EnableLinks
-    Set-CheckedItems -List $lstDLinks -Items $State.DisableLinks
-
-    Update-Command
-}
-
-function Save-GuiStateToFile {
-    param([string]$Path)
-    if ([string]::IsNullOrWhiteSpace($Path)) { return }
-
-    try {
-        $state = Get-GuiState
-        $extension = ([System.IO.Path]::GetExtension($Path)).ToLowerInvariant()
-
-        switch ($extension) {
-            ".json" {
-                $state | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
-            }
-            ".xml" {
-                $state | Export-Clixml -Path $Path
-            }
-            default {
-                $state | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
-            }
-        }
-
-        [System.Windows.Forms.MessageBox]::Show("Saved GUI state to $Path.", "MSDeploy PowerShell GUI") | Out-Null
-    }
-    catch {
-        [System.Windows.Forms.MessageBox]::Show("Failed to save state: $($_.Exception.Message)", "MSDeploy PowerShell GUI") | Out-Null
-    }
-}
-
-function Read-GuiStateFromFile {
-    param([string]$Path)
-
-    if (-not (Test-Path $Path)) {
-        [System.Windows.Forms.MessageBox]::Show("File not found: $Path", "MSDeploy PowerShell GUI") | Out-Null
-        return
-    }
-
-    try {
-        $extension = ([System.IO.Path]::GetExtension($Path)).ToLowerInvariant()
-        switch ($extension) {
-            ".json" {
-                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
-            }
-            ".xml" {
-                $state = Import-Clixml -Path $Path
-            }
-            default {
-                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
-            }
-        }
-
-        if (-not $state) {
-            [System.Windows.Forms.MessageBox]::Show("State file was empty or invalid.", "MSDeploy PowerShell GUI") | Out-Null
-            return
-        }
-
-        Set-GuiState -State $state
-        [System.Windows.Forms.MessageBox]::Show("Loaded GUI state from $Path.", "MSDeploy PowerShell GUI") | Out-Null
-    }
-    catch {
-        [System.Windows.Forms.MessageBox]::Show("Failed to load state: $($_.Exception.Message)", "MSDeploy PowerShell GUI") | Out-Null
-    }
-}
-
-function Get-SideConfiguration {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side
-    )
-
-    $map = $sideControls[$Side]
-    if (-not $map) { return $null }
-
-    $providerValue = if ($map.Provider.SelectedItem) { $map.Provider.SelectedItem } else { $map.Provider.Text }
-
-    return [ordered]@{
-        Provider = $providerValue
-        Value    = Get-ProviderMainValue -Side $Side
-        IP       = $map.IP.Text.Trim()
-        User     = $map.User.Text.Trim()
-        Pass     = $map.Pass.Text
-        Auth     = $map.Auth.SelectedItem
-    }
-}
-
-function Set-SideConfiguration {
+function Set-SideConfigurationLocal {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side,
         [hashtable]$Config
     )
-
-    if (-not $Config) { return }
-    $map = $sideControls[$Side]
-    if (-not $map) { return }
-
-    $providerValue = $Config.Provider
-    $combo = $map.Provider
-    if ($providerValue -and $combo.Items.Contains($providerValue)) {
-        $combo.SelectedItem = $providerValue
-    }
-    elseif ($providerValue) {
-        $combo.SelectedIndex = -1
-        $combo.Text = $providerValue
-    }
-    elseif ($combo.Items.Count -gt 0) {
-        $combo.SelectedIndex = 0
-    }
-
-    $providerArgument = if ($combo.SelectedItem) { $combo.SelectedItem } else { $combo.Text }
-    Update-ProviderInputMode -Side $Side -Provider $providerArgument
-
-    $state = $providerUiStates[$Side]
-    if ($state.CurrentMode -eq "Site") {
-        if ($Config.Value) {
-            $index = $state.SiteCombo.Items.IndexOf($Config.Value)
-            if ($index -ge 0) {
-                $state.SiteCombo.SelectedIndex = $index
-            }
-            else {
-                $state.SiteCombo.Text = $Config.Value
-            }
-        }
-        else {
-            $state.SiteCombo.SelectedIndex = -1
-        }
-    }
-    else {
-        if ($null -ne $Config.Value) {
-            $state.TextBox.Text = $Config.Value
-        }
-        else {
-            $state.TextBox.Clear()
-        }
-    }
-
-    $map.IP.Text = $Config.IP
-    $map.User.Text = $Config.User
-    $map.Pass.Text = $Config.Pass
-
-    if ($Config.Auth -and $map.Auth.Items.Contains($Config.Auth)) {
-        $map.Auth.SelectedItem = $Config.Auth
-    }
-    else {
-        $map.Auth.SelectedIndex = -1
-    }
+    Set-SideConfiguration -Side $Side -Config $Config -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
 }
 
-function Copy-SideConfiguration {
+function Copy-SideConfigurationLocal {
     param(
         [ValidateSet("Source", "Destination")] [string]$From,
         [ValidateSet("Source", "Destination")] [string]$To
     )
-
-    if ($From -eq $To) { return }
-    $config = Get-SideConfiguration -Side $From
-    Set-SideConfiguration -Side $To -Config $config
+    Copy-SideConfiguration -From $From -To $To -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
     Update-Command
 }
 
-function Switch-SideConfiguration {
-    $sourceState = Get-SideConfiguration -Side "Source"
-    $destState = Get-SideConfiguration -Side "Destination"
-    Set-SideConfiguration -Side "Source" -Config $destState
-    Set-SideConfiguration -Side "Destination" -Config $sourceState
+function Switch-SideConfigurationLocal {
+    Switch-SideConfiguration -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
     Update-Command
 }
 
-function Clear-SideConfiguration {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side
-    )
-
-    $map = $sideControls[$Side]
-    if (-not $map) { return }
-
-    if ($map.Provider.Items.Count -gt 0) {
-        $map.Provider.SelectedIndex = 0
-        Update-ProviderInputMode -Side $Side -Provider $map.Provider.SelectedItem
-    }
-
-    $state = $providerUiStates[$Side]
-    $state.TextBox.Text = ""
-    $state.SiteCombo.SelectedIndex = -1
-    $state.SiteCombo.Text = ""
-
-    $map.IP.Clear()
-    $map.User.Clear()
-    $map.Pass.Clear()
-    $map.Auth.SelectedIndex = -1
+function Clear-SideConfigurationLocal {
+    param([ValidateSet("Source", "Destination")] [string]$Side)
+    Clear-SideConfiguration -Side $Side -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
 }
 
 function Clear-AllInputs {
     foreach ($side in @("Source", "Destination")) {
-        Clear-SideConfiguration -Side $side
+        Clear-SideConfigurationLocal -Side $side
     }
 
     $cbVerb.SelectedIndex = 0
@@ -958,39 +605,22 @@ function Clear-AllInputs {
     Update-Command
 }
 
-function Initialize-SiteCombo {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side
-    )
-
-    $state = $providerUiStates[$Side]
-    if (-not $state -or $state.CurrentMode -ne "Site") { return }
-
-    $currentValue = $state.SiteCombo.Text
-    if (Initialize-SiteComboBox -Side $Side) {
-        if ($currentValue) {
-            $index = $state.SiteCombo.Items.IndexOf($currentValue)
-            if ($index -ge 0) {
-                $state.SiteCombo.SelectedIndex = $index
-            }
-            else {
-                $state.SiteCombo.Text = $currentValue
-            }
-        }
-    }
+function Save-GuiState {
+    param([string]$Path)
+    Save-GuiStateToFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
 }
 
-function Initialize-AllSiteCombos {
-    Initialize-SiteCombo -Side "Source"
-    Initialize-SiteCombo -Side "Destination"
+function Load-GuiState {
+    param([string]$Path)
+    Load-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
     Update-Command
 }
 
 $btnSrcBrowse.Add_Click({
-        Invoke-BrowseDialog -Side "Source"
+        Invoke-BrowseDialog -Side "Source" -ProviderUiStates $providerUiStates
     })
 $btnDstBrowse.Add_Click({
-        Invoke-BrowseDialog -Side "Destination"
+        Invoke-BrowseDialog -Side "Destination" -ProviderUiStates $providerUiStates
     })
 
 # ===============================================================
@@ -1044,10 +674,10 @@ function Get-MsDeployCommandString {
         return ""
     }
 
-    $srcValue = Get-ProviderMainValue -Side "Source"
+    $srcValue = Get-ProviderValue -Side "Source"
     $src = if ($srcValue) { "-source:$srcProv=`"$srcValue`"" } else { "-source:$srcProv" }
 
-    $dstValue = Get-ProviderMainValue -Side "Destination"
+    $dstValue = Get-ProviderValue -Side "Destination"
     $dest = if ($dstValue) { "-dest:$dstProv=`"$dstValue`"" } else { "-dest:$dstProv" }
 
     # Source attributes
@@ -1188,8 +818,8 @@ foreach ($ctl in @($lstFlags, $lstRules, $lstELinks, $lstDLinks)) {
     $ctl.Add_ItemCheck({ Start-Sleep -Milliseconds 100; Update-Command }) 2>$null
 }
 
-Update-ProviderInputMode -Side "Source" -Provider $cbSrcProv.SelectedItem
-Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
+Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
+Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
 
 # ===============================================================
 # RUN BUTTONS
