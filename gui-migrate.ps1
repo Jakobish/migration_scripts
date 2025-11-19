@@ -103,6 +103,8 @@ $disableLinks = @(
 
 # Global flags
 $flags = @(
+    "-xml",
+    "-allowUntrusted",
     "-whatIf",
     "-allowUntrusted",
     "-verbose"
@@ -129,7 +131,7 @@ $form.Controls.Add($left)
 
 $lblSource = New-Object System.Windows.Forms.Label
 $lblSource.Text = "SOURCE CONFIGURATION"
-$lblSource.Font = "Arial,12,style=Bold"
+$lblSource.Font = "Arial,10,style=Bold"
 $lblSource.Location = "10,10"
 $left.Controls.Add($lblSource)
 
@@ -196,6 +198,101 @@ $cbSrcProv.Add_SelectedIndexChanged({
     })
 
 # ===============================================================
+# INLINE ATTRIBUTES (LEFT SIDE)
+# ===============================================================
+
+$lblIPLeft = New-Object System.Windows.Forms.Label
+$lblIPLeft.Text = "computerName (IP only):"
+$lblIPLeft.Location = "10,170"
+$left.Controls.Add($lblIPLeft)
+
+$txtIPLeft = New-Object System.Windows.Forms.TextBox
+$txtIPLeft.Location = "150,165"
+$txtIPLeft.Width = 350
+$left.Controls.Add($txtIPLeft)
+
+$lblUserLeft = New-Object System.Windows.Forms.Label
+$lblUserLeft.Text = "userName:"
+$lblUserLeft.Location = "10,210"
+$left.Controls.Add($lblUserLeft)
+
+$txtUserLeft = New-Object System.Windows.Forms.TextBox
+$txtUserLeft.Location = "150,205"
+$txtUserLeft.Width = 350
+$left.Controls.Add($txtUserLeft)
+
+$lblPassLeft = New-Object System.Windows.Forms.Label
+$lblPassLeft.Text = "password:"
+$lblPassLeft.Location = "10,250"
+$left.Controls.Add($lblPassLeft)
+
+$txtPassLeft = New-Object System.Windows.Forms.TextBox
+$txtPassLeft.Location = "150,245"
+$txtPassLeft.Width = 350
+$txtPassLeft.UseSystemPasswordChar = $true
+$left.Controls.Add($txtPassLeft)
+
+$lblAuthLeft = New-Object System.Windows.Forms.Label
+$lblAuthLeft.Text = "authType:"
+$lblAuthLeft.Location = "10,290"
+$left.Controls.Add($lblAuthLeft)
+
+$cbAuthLeft = New-Object System.Windows.Forms.ComboBox
+$cbAuthLeft.Location = "150,285"
+$cbAuthLeft.Width = 350
+$cbAuthLeft.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
+$cbAuthLeft.SelectedIndex = -1
+$left.Controls.Add($cbAuthLeft)
+
+# Flags (Left)
+$lblFlagsLeft = New-Object System.Windows.Forms.Label
+$lblFlagsLeft.Text = "Global Flags:"
+$lblFlagsLeft.Location = "10,340"
+$left.Controls.Add($lblFlagsLeft)
+
+$lstFlagsLeft = New-Object System.Windows.Forms.CheckedListBox
+$lstFlagsLeft.Location = "10,365"
+$lstFlagsLeft.Size = "250,150"
+$lstFlagsLeft.Items.AddRange($flags)
+$left.Controls.Add($lstFlagsLeft)
+
+# Rules (Left)
+$lblRulesLeft = New-Object System.Windows.Forms.Label
+$lblRulesLeft.Text = "Rules:"
+$lblRulesLeft.Location = "300,340"
+$left.Controls.Add($lblRulesLeft)
+
+$lstRulesLeft = New-Object System.Windows.Forms.CheckedListBox
+$lstRulesLeft.Location = "300,365"
+$lstRulesLeft.Size = "250,150"
+$lstRulesLeft.Items.AddRange($rules)
+$left.Controls.Add($lstRulesLeft)
+
+# Enable Links (Left)
+$lblELinksLeft = New-Object System.Windows.Forms.Label
+$lblELinksLeft.Text = "Enable Links:"
+$lblELinksLeft.Location = "10,530"
+$left.Controls.Add($lblELinksLeft)
+
+$lstELinksLeft = New-Object System.Windows.Forms.CheckedListBox
+$lstELinksLeft.Location = "10,555"
+$lstELinksLeft.Size = "250,150"
+$lstELinksLeft.Items.AddRange($enableLinks)
+$left.Controls.Add($lstELinksLeft)
+
+# Disable Links (Left)
+$lblDLinksLeft = New-Object System.Windows.Forms.Label
+$lblDLinksLeft.Text = "Disable Links:"
+$lblDLinksLeft.Location = "300,530"
+$left.Controls.Add($lblDLinksLeft)
+
+$lstDLinksLeft = New-Object System.Windows.Forms.CheckedListBox
+$lstDLinksLeft.Location = "300,555"
+$lstDLinksLeft.Size = "250,150"
+$lstDLinksLeft.Items.AddRange($disableLinks)
+$left.Controls.Add($lstDLinksLeft)
+
+# ===============================================================
 # RIGHT PANEL (DESTINATION)
 # ===============================================================
 
@@ -207,7 +304,7 @@ $form.Controls.Add($right)
 
 $lblDest = New-Object System.Windows.Forms.Label
 $lblDest.Text = "DESTINATION CONFIGURATION"
-$lblDest.Font = "Arial,12,style=Bold"
+$lblDest.Font = "Arial,10,style=Bold"
 $lblDest.Location = "10,10"
 $right.Controls.Add($lblDest)
 
@@ -426,101 +523,9 @@ $btnDstBrowse.Add_Click({
         Invoke-BrowseDialog -Side "Destination"
     })
 
-# Inline attributes (computerName, user, pass, authType)
-$lblIP = New-Object System.Windows.Forms.Label
-$lblIP.Text = "computerName (IP only):"
-$lblIP.Location = "10,130"
-$right.Controls.Add($lblIP)
-
-$txtIP = New-Object System.Windows.Forms.TextBox
-$txtIP.Location = "175,125"
-$txtIP.Width = 350
-$right.Controls.Add($txtIP)
-
-$lblUser = New-Object System.Windows.Forms.Label
-$lblUser.Text = "userName:"
-$lblUser.Location = "10,170"
-$right.Controls.Add($lblUser)
-
-$txtUser = New-Object System.Windows.Forms.TextBox
-$txtUser.Location = "175,165"
-$txtUser.Width = 350
-$right.Controls.Add($txtUser)
-
-$lblPass = New-Object System.Windows.Forms.Label
-$lblPass.Text = "password:"
-$lblPass.Location = "10,210"
-$right.Controls.Add($lblPass)
-
-$txtPass = New-Object System.Windows.Forms.TextBox
-$txtPass.Location = "175,205"
-$txtPass.Width = 350
-$txtPass.UseSystemPasswordChar = $true
-$right.Controls.Add($txtPass)
-
-$lblAuth = New-Object System.Windows.Forms.Label
-$lblAuth.Text = "authType:"
-$lblAuth.Location = "10,250"
-$right.Controls.Add($lblAuth)
-
-$cbAuth = New-Object System.Windows.Forms.ComboBox
-$cbAuth.Location = "175,245"
-$cbAuth.Width = 350
-$cbAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
-$cbAuth.SelectedIndex = -1
-$right.Controls.Add($cbAuth)
-
-# ===============================================================
-# FLAGS / RULES / LINKS
-# ===============================================================
-
-# Flags
-$lblFlags = New-Object System.Windows.Forms.Label
-$lblFlags.Text = "Global Flags:"
-$lblFlags.Location = "10,300"
-$right.Controls.Add($lblFlags)
-
-$lstFlags = New-Object System.Windows.Forms.CheckedListBox
-$lstFlags.Location = "10,325"
-$lstFlags.Size = "250,150"
-$lstFlags.Items.AddRange($flags)
-$right.Controls.Add($lstFlags)
-
-# Rules
-$lblRules = New-Object System.Windows.Forms.Label
-$lblRules.Text = "Rules:"
-$lblRules.Location = "300,300"
-$right.Controls.Add($lblRules)
-
-$lstRules = New-Object System.Windows.Forms.CheckedListBox
-$lstRules.Location = "300,325"
-$lstRules.Size = "250,150"
-$lstRules.Items.AddRange($rules)
-$right.Controls.Add($lstRules)
-
-# Enable Links
-$lblELinks = New-Object System.Windows.Forms.Label
-$lblELinks.Text = "Enable Links:"
-$lblELinks.Location = "10,490"
-$right.Controls.Add($lblELinks)
-
-$lstELinks = New-Object System.Windows.Forms.CheckedListBox
-$lstELinks.Location = "10,515"
-$lstELinks.Size = "250,150"
-$lstELinks.Items.AddRange($enableLinks)
-$right.Controls.Add($lstELinks)
-
-# Disable Links
-$lblDLinks = New-Object System.Windows.Forms.Label
-$lblDLinks.Text = "Disable Links:"
-$lblDLinks.Location = "300,490"
-$right.Controls.Add($lblDLinks)
-
-$lstDLinks = New-Object System.Windows.Forms.CheckedListBox
-$lstDLinks.Location = "300,515"
-$lstDLinks.Size = "250,150"
-$lstDLinks.Items.AddRange($disableLinks)
-$right.Controls.Add($lstDLinks)
+# Right side destination provider input positioned after the inline attributes
+$lblDstMain.Location = "10,290"
+$dstInputPanel.Location = "175,285"
 
 # ===============================================================
 # COMMAND PREVIEW
