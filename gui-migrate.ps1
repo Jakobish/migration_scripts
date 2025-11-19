@@ -1,3 +1,5 @@
+#Requires -RunAsAdministrator
+
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 
@@ -116,8 +118,73 @@ $flags = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MSDeploy PowerShell GUI"
-$form.Size = New-Object System.Drawing.Size(1400, 1200)
+$form.Size = New-Object System.Drawing.Size(1400, 1250)
 $form.StartPosition = "CenterScreen"
+
+$toolTip = New-Object System.Windows.Forms.ToolTip
+$toolTip.ShowAlways = $true
+
+$headerPanel = New-Object System.Windows.Forms.Panel
+$headerPanel.Location = "10,10"
+$headerPanel.Size = "1130,140"
+$headerPanel.BorderStyle = "FixedSingle"
+$form.Controls.Add($headerPanel)
+
+$titleLabel = New-Object System.Windows.Forms.Label
+$titleLabel.Text = "Dual-Sided MSDeploy Command Builder"
+$titleLabel.Font = "Segoe UI,12,style=Bold"
+$titleLabel.Location = "10,5"
+$titleLabel.AutoSize = $true
+$headerPanel.Controls.Add($titleLabel)
+
+$infoLabel = New-Object System.Windows.Forms.Label
+$infoLabel.Text = "Build identical source/destination definitions, then execute or copy the msdeploy command.  " +
+    "Use the helper buttons to mirror, swap, or refresh either side so you can start from whichever server you prefer."
+$infoLabel.Location = "10,35"
+$infoLabel.Size = "780,80"
+$headerPanel.Controls.Add($infoLabel)
+
+$actionPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$actionPanel.Location = "800,5"
+$actionPanel.Size = "320,130"
+$actionPanel.FlowDirection = "TopDown"
+$actionPanel.WrapContents = $false
+$actionPanel.AutoScroll = $true
+$headerPanel.Controls.Add($actionPanel)
+
+function New-ActionButton {
+    param(
+        [string]$Text,
+        [string]$TooltipText
+    )
+
+    $btn = New-Object System.Windows.Forms.Button
+    $btn.Text = $Text
+    $btn.Width = 300
+    $btn.Height = 25
+    if ($TooltipText) {
+        $toolTip.SetToolTip($btn, $TooltipText)
+    }
+    return $btn
+}
+
+$btnCopySrcToDst = New-ActionButton -Text "Copy Source → Destination" -TooltipText "Mirror all fields from the left side to the right side."
+$btnCopyDstToSrc = New-ActionButton -Text "Copy Destination → Source" -TooltipText "Mirror all fields from the right side to the left side."
+$btnSwapSides = New-ActionButton -Text "Swap Source & Destination" -TooltipText "Exchange both sides so you can easily reverse a migration."
+$btnRefreshSites = New-ActionButton -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
+$btnClearAll = New-ActionButton -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
+
+$actionPanel.Controls.Add($btnCopySrcToDst)
+$actionPanel.Controls.Add($btnCopyDstToSrc)
+$actionPanel.Controls.Add($btnSwapSides)
+$actionPanel.Controls.Add($btnRefreshSites)
+$actionPanel.Controls.Add($btnClearAll)
+
+$btnCopySrcToDst.Add_Click({ Copy-SideConfiguration -From "Source" -To "Destination" })
+$btnCopyDstToSrc.Add_Click({ Copy-SideConfiguration -From "Destination" -To "Source" })
+$btnSwapSides.Add_Click({ Swap-SideConfiguration })
+$btnRefreshSites.Add_Click({ Refresh-AllSiteCombos })
+$btnClearAll.Add_Click({ Clear-AllInputs })
 
 # ===============================================================
 # COMMON VERB CONFIGURATION
@@ -125,12 +192,12 @@ $form.StartPosition = "CenterScreen"
 
 $lblVerb = New-Object System.Windows.Forms.Label
 $lblVerb.Text = "Verb:"
-$lblVerb.Location = "10,740"
+$lblVerb.Location = "10,900"
 $lblVerb.Font = "Arial,10,style=Bold"
 $form.Controls.Add($lblVerb)
 
 $cbVerb = New-Object System.Windows.Forms.ComboBox
-$cbVerb.Location = "150,735"
+$cbVerb.Location = "150,895"
 $cbVerb.Width = 350
 $cbVerb.Items.AddRange($verbs)
 $cbVerb.SelectedIndex = 0
@@ -141,7 +208,7 @@ $form.Controls.Add($cbVerb)
 # ===============================================================
 
 $left = New-Object System.Windows.Forms.Panel
-$left.Location = "10,10"
+$left.Location = "10,160"
 $left.Size = "560,720"
 $left.BorderStyle = "FixedSingle"
 $form.Controls.Add($left)
@@ -163,6 +230,7 @@ $cbSrcProv.Location = "150,45"
 $cbSrcProv.Width = 350
 $cbSrcProv.Items.AddRange($sourceProviders)
 $cbSrcProv.SelectedIndex = 0
+$toolTip.SetToolTip($cbSrcProv, "Provider for the -source argument.")
 $left.Controls.Add($cbSrcProv)
 
 # Source main value
@@ -213,6 +281,7 @@ $left.Controls.Add($lblSrcIP)
 $txtSrcIP = New-Object System.Windows.Forms.TextBox
 $txtSrcIP.Location = "150,125"
 $txtSrcIP.Width = 350
+$toolTip.SetToolTip($txtSrcIP, "computerName for the source (IP preferred).")
 $left.Controls.Add($txtSrcIP)
 
 $lblSrcUser = New-Object System.Windows.Forms.Label
@@ -223,6 +292,7 @@ $left.Controls.Add($lblSrcUser)
 $txtSrcUser = New-Object System.Windows.Forms.TextBox
 $txtSrcUser.Location = "150,165"
 $txtSrcUser.Width = 350
+$toolTip.SetToolTip($txtSrcUser, "userName attribute for the source provider.")
 $left.Controls.Add($txtSrcUser)
 
 $lblSrcPass = New-Object System.Windows.Forms.Label
@@ -234,6 +304,7 @@ $txtSrcPass = New-Object System.Windows.Forms.TextBox
 $txtSrcPass.Location = "150,205"
 $txtSrcPass.Width = 350
 $txtSrcPass.UseSystemPasswordChar = $true
+$toolTip.SetToolTip($txtSrcPass, "password attribute for the source provider.")
 $left.Controls.Add($txtSrcPass)
 
 $lblSrcAuth = New-Object System.Windows.Forms.Label
@@ -246,6 +317,7 @@ $cbSrcAuth.Location = "150,245"
 $cbSrcAuth.Width = 350
 $cbSrcAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
 $cbSrcAuth.SelectedIndex = -1
+$toolTip.SetToolTip($cbSrcAuth, "authType attribute for the source provider.")
 $left.Controls.Add($cbSrcAuth)
 
 # Flags
@@ -301,7 +373,7 @@ $left.Controls.Add($lstDLinks)
 # ===============================================================
 
 $right = New-Object System.Windows.Forms.Panel
-$right.Location = "580,10"
+$right.Location = "580,160"
 $right.Size = "560,720"
 $right.BorderStyle = "FixedSingle"
 $form.Controls.Add($right)
@@ -323,6 +395,7 @@ $cbDstProv.Location = "175,45"
 $cbDstProv.Width = 350
 $cbDstProv.Items.AddRange($destProviders)
 $cbDstProv.SelectedIndex = 0
+$toolTip.SetToolTip($cbDstProv, "Provider for the -dest argument.")
 $right.Controls.Add($cbDstProv)
 
 # Destination main value
@@ -372,6 +445,7 @@ $right.Controls.Add($lblDstIP)
 $txtDstIP = New-Object System.Windows.Forms.TextBox
 $txtDstIP.Location = "175,125"
 $txtDstIP.Width = 350
+$toolTip.SetToolTip($txtDstIP, "computerName for the destination (IP preferred).")
 $right.Controls.Add($txtDstIP)
 
 $lblDstUser = New-Object System.Windows.Forms.Label
@@ -382,6 +456,7 @@ $right.Controls.Add($lblDstUser)
 $txtDstUser = New-Object System.Windows.Forms.TextBox
 $txtDstUser.Location = "175,165"
 $txtDstUser.Width = 350
+$toolTip.SetToolTip($txtDstUser, "userName attribute for the destination provider.")
 $right.Controls.Add($txtDstUser)
 
 $lblDstPass = New-Object System.Windows.Forms.Label
@@ -393,6 +468,7 @@ $txtDstPass = New-Object System.Windows.Forms.TextBox
 $txtDstPass.Location = "175,205"
 $txtDstPass.Width = 350
 $txtDstPass.UseSystemPasswordChar = $true
+$toolTip.SetToolTip($txtDstPass, "password attribute for the destination provider.")
 $right.Controls.Add($txtDstPass)
 
 $lblDstAuth = New-Object System.Windows.Forms.Label
@@ -405,7 +481,25 @@ $cbDstAuth.Location = "175,245"
 $cbDstAuth.Width = 350
 $cbDstAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
 $cbDstAuth.SelectedIndex = -1
+$toolTip.SetToolTip($cbDstAuth, "authType attribute for the destination provider.")
 $right.Controls.Add($cbDstAuth)
+
+$sideControls = @{
+    "Source" = @{
+        Provider = $cbSrcProv
+        Auth     = $cbSrcAuth
+        IP       = $txtSrcIP
+        User     = $txtSrcUser
+        Pass     = $txtSrcPass
+    }
+    "Destination" = @{
+        Provider = $cbDstProv
+        Auth     = $cbDstAuth
+        IP       = $txtDstIP
+        User     = $txtDstUser
+        Pass     = $txtDstPass
+    }
+}
 
 $providerUiStates = @{
     "Source" = [ordered]@{
@@ -567,6 +661,184 @@ function Get-ProviderMainValue {
     }
 }
 
+function Reset-CheckedListBox {
+    param([System.Windows.Forms.CheckedListBox]$List)
+    if (-not $List) { return }
+    for ($i = 0; $i -lt $List.Items.Count; $i++) {
+        $List.SetItemChecked($i, $false)
+    }
+}
+
+function Get-SideConfiguration {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side
+    )
+
+    $map = $sideControls[$Side]
+    if (-not $map) { return $null }
+
+    $providerValue = if ($map.Provider.SelectedItem) { $map.Provider.SelectedItem } else { $map.Provider.Text }
+
+    return [ordered]@{
+        Provider = $providerValue
+        Value    = Get-ProviderMainValue -Side $Side
+        IP       = $map.IP.Text.Trim()
+        User     = $map.User.Text.Trim()
+        Pass     = $map.Pass.Text
+        Auth     = $map.Auth.SelectedItem
+    }
+}
+
+function Set-SideConfiguration {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side,
+        [hashtable]$Config
+    )
+
+    if (-not $Config) { return }
+    $map = $sideControls[$Side]
+    if (-not $map) { return }
+
+    $providerValue = $Config.Provider
+    $combo = $map.Provider
+    if ($providerValue -and $combo.Items.Contains($providerValue)) {
+        $combo.SelectedItem = $providerValue
+    }
+    elseif ($providerValue) {
+        $combo.SelectedIndex = -1
+        $combo.Text = $providerValue
+    }
+    elseif ($combo.Items.Count -gt 0) {
+        $combo.SelectedIndex = 0
+    }
+
+    $providerArgument = if ($combo.SelectedItem) { $combo.SelectedItem } else { $combo.Text }
+    Update-ProviderInputMode -Side $Side -Provider $providerArgument
+
+    $state = $providerUiStates[$Side]
+    if ($state.CurrentMode -eq "Site") {
+        if ($Config.Value) {
+            $index = $state.SiteCombo.Items.IndexOf($Config.Value)
+            if ($index -ge 0) {
+                $state.SiteCombo.SelectedIndex = $index
+            }
+            else {
+                $state.SiteCombo.Text = $Config.Value
+            }
+        }
+        else {
+            $state.SiteCombo.SelectedIndex = -1
+        }
+    }
+    else {
+        if ($null -ne $Config.Value) {
+            $state.TextBox.Text = $Config.Value
+        }
+        else {
+            $state.TextBox.Clear()
+        }
+    }
+
+    $map.IP.Text = $Config.IP
+    $map.User.Text = $Config.User
+    $map.Pass.Text = $Config.Pass
+
+    if ($Config.Auth -and $map.Auth.Items.Contains($Config.Auth)) {
+        $map.Auth.SelectedItem = $Config.Auth
+    }
+    else {
+        $map.Auth.SelectedIndex = -1
+    }
+}
+
+function Copy-SideConfiguration {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$From,
+        [ValidateSet("Source", "Destination")] [string]$To
+    )
+
+    if ($From -eq $To) { return }
+    $config = Get-SideConfiguration -Side $From
+    Set-SideConfiguration -Side $To -Config $config
+    Update-Command
+}
+
+function Swap-SideConfiguration {
+    $sourceState = Get-SideConfiguration -Side "Source"
+    $destState = Get-SideConfiguration -Side "Destination"
+    Set-SideConfiguration -Side "Source" -Config $destState
+    Set-SideConfiguration -Side "Destination" -Config $sourceState
+    Update-Command
+}
+
+function Clear-SideConfiguration {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side
+    )
+
+    $map = $sideControls[$Side]
+    if (-not $map) { return }
+
+    if ($map.Provider.Items.Count -gt 0) {
+        $map.Provider.SelectedIndex = 0
+        Update-ProviderInputMode -Side $Side -Provider $map.Provider.SelectedItem
+    }
+
+    $state = $providerUiStates[$Side]
+    $state.TextBox.Text = ""
+    $state.SiteCombo.SelectedIndex = -1
+    $state.SiteCombo.Text = ""
+
+    $map.IP.Clear()
+    $map.User.Clear()
+    $map.Pass.Clear()
+    $map.Auth.SelectedIndex = -1
+}
+
+function Clear-AllInputs {
+    foreach ($side in @("Source", "Destination")) {
+        Clear-SideConfiguration -Side $side
+    }
+
+    $cbVerb.SelectedIndex = 0
+    Reset-CheckedListBox $lstFlags
+    Reset-CheckedListBox $lstRules
+    Reset-CheckedListBox $lstELinks
+    Reset-CheckedListBox $lstDLinks
+
+    $logBox.Clear()
+    $cmdBox.Clear()
+    Update-Command
+}
+
+function Refresh-SiteCombo {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$Side
+    )
+
+    $state = $providerUiStates[$Side]
+    if (-not $state -or $state.CurrentMode -ne "Site") { return }
+
+    $currentValue = $state.SiteCombo.Text
+    if (Initialize-SiteComboBox -Side $Side) {
+        if ($currentValue) {
+            $index = $state.SiteCombo.Items.IndexOf($currentValue)
+            if ($index -ge 0) {
+                $state.SiteCombo.SelectedIndex = $index
+            }
+            else {
+                $state.SiteCombo.Text = $currentValue
+            }
+        }
+    }
+}
+
+function Refresh-AllSiteCombos {
+    Refresh-SiteCombo -Side "Source"
+    Refresh-SiteCombo -Side "Destination"
+    Update-Command
+}
+
 $btnSrcBrowse.Add_Click({
         Invoke-BrowseDialog -Side "Source"
     })
@@ -578,19 +850,31 @@ $btnDstBrowse.Add_Click({
 # COMMAND PREVIEW
 # ===============================================================
 
+$lblPreview = New-Object System.Windows.Forms.Label
+$lblPreview.Text = "Command Preview"
+$lblPreview.Location = "10,930"
+$lblPreview.Font = "Arial,9,style=Bold"
+$form.Controls.Add($lblPreview)
+
 $cmdBox = New-Object System.Windows.Forms.TextBox
 $cmdBox.Multiline = $true
 $cmdBox.ScrollBars = "Vertical"
-$cmdBox.Location = "10,740"
+$cmdBox.Location = "10,950"
 $cmdBox.Size = "1130,80"
 $cmdBox.Font = "Consolas,10"
 $cmdBox.ReadOnly = $true
 $form.Controls.Add($cmdBox)
 
+$lblLog = New-Object System.Windows.Forms.Label
+$lblLog.Text = "Activity Log"
+$lblLog.Location = "10,1040"
+$lblLog.Font = "Arial,9,style=Bold"
+$form.Controls.Add($lblLog)
+
 $logBox = New-Object System.Windows.Forms.TextBox
 $logBox.Multiline = $true
 $logBox.ScrollBars = "Vertical"
-$logBox.Location = "10,830"
+$logBox.Location = "10,1050"
 $logBox.Size = "1130,120"
 $logBox.Font = "Consolas,9"
 $logBox.ReadOnly = $true
@@ -766,25 +1050,27 @@ Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
 
 $btnExecute = New-Object System.Windows.Forms.Button
 $btnExecute.Text = "Execute"
-$btnExecute.Location = "10,965"
+$btnExecute.Location = "10,1185"
 $btnExecute.Size = "120,30"
-    $btnExecute.Add_Click({
+$btnExecute.Add_Click({
         Invoke-MsDeployCommand
     })
+$toolTip.SetToolTip($btnExecute, "Execute the currently previewed msdeploy command.")
 $form.Controls.Add($btnExecute)
 
 $btnDry = New-Object System.Windows.Forms.Button
 $btnDry.Text = "Dry Run (-whatIf)"
-$btnDry.Location = "150,965"
+$btnDry.Location = "150,1185"
 $btnDry.Size = "150,30"
-    $btnDry.Add_Click({
+$btnDry.Add_Click({
         Invoke-MsDeployCommand -DryRun
     })
+$toolTip.SetToolTip($btnDry, "Append -whatIf to validate without making changes.")
 $form.Controls.Add($btnDry)
 
 $btnCopy = New-Object System.Windows.Forms.Button
 $btnCopy.Text = "Copy"
-$btnCopy.Location = "320,965"
+$btnCopy.Location = "320,1185"
 $btnCopy.Size = "120,30"
 $btnCopy.Add_Click({
         $command = $cmdBox.Text.Trim()
@@ -792,6 +1078,7 @@ $btnCopy.Add_Click({
             [System.Windows.Forms.Clipboard]::SetText($command)
         }
     })
+$toolTip.SetToolTip($btnCopy, "Copy the cmd.exe invocation for use elsewhere.")
 $form.Controls.Add($btnCopy)
 
 # ===============================================================
