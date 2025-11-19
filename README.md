@@ -9,7 +9,7 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Features](#%EF%B8%8F-features)
+- [Features](#features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick Start](#quick-start)

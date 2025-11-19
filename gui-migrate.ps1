@@ -111,7 +111,9 @@ $flags = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MSDeploy PowerShell GUI"
-$form.Size = New-Object System.Drawing.Size(1400, 1250)
+$form.Size = New-Object System.Drawing.Size(1200, 900)
+$form.AutoScroll = $true  # Allow smaller screens to reach the bottom controls
+$form.AutoScrollMinSize = New-Object System.Drawing.Size(1200, 1250)
 $form.StartPosition = "CenterScreen"
 
 $toolTip = New-Object System.Windows.Forms.ToolTip
