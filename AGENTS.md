@@ -62,13 +62,6 @@ This file provides comprehensive guidance for all agents working with the IIS mi
 - ACL sync failures are non-fatal - script continues but warnings suppressed
 - ACL management is centralized through msdeploy with specific flag combinations
 
-## Non-Obvious Gotchas
-
-### Multi-language Support
-
-- **Hebrew comments**: Server-Setup-Util.ps1 contains Hebrew comments (פשוט, אפשרות, משאיר)
-- **Internationalization**: Multilingual documentation needs not yet implemented
-
 ### Command Execution
 
 - **WhatIf mode**: Only logs intended commands - actual execution still pending
