@@ -116,8 +116,25 @@ $flags = @(
 
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MSDeploy PowerShell GUI"
-$form.Size = New-Object System.Drawing.Size(1200, 1020)
+$form.Size = New-Object System.Drawing.Size(1400, 1200)
 $form.StartPosition = "CenterScreen"
+
+# ===============================================================
+# COMMON VERB CONFIGURATION
+# ===============================================================
+
+$lblVerb = New-Object System.Windows.Forms.Label
+$lblVerb.Text = "Verb:"
+$lblVerb.Location = "10,740"
+$lblVerb.Font = "Arial,10,style=Bold"
+$form.Controls.Add($lblVerb)
+
+$cbVerb = New-Object System.Windows.Forms.ComboBox
+$cbVerb.Location = "150,735"
+$cbVerb.Width = 350
+$cbVerb.Items.AddRange($verbs)
+$cbVerb.SelectedIndex = 0
+$form.Controls.Add($cbVerb)
 
 # ===============================================================
 # LEFT PANEL (SOURCE)
@@ -135,27 +152,14 @@ $lblSource.Font = "Arial,10,style=Bold"
 $lblSource.Location = "10,10"
 $left.Controls.Add($lblSource)
 
-# Verb
-$lblVerb = New-Object System.Windows.Forms.Label
-$lblVerb.Text = "Verb:"
-$lblVerb.Location = "10,50"
-$left.Controls.Add($lblVerb)
-
-$cbVerb = New-Object System.Windows.Forms.ComboBox
-$cbVerb.Location = "150,45"
-$cbVerb.Width = 350
-$cbVerb.Items.AddRange($verbs)
-$cbVerb.SelectedIndex = 0
-$left.Controls.Add($cbVerb)
-
 # Source provider
 $lblSrcProv = New-Object System.Windows.Forms.Label
 $lblSrcProv.Text = "Source Provider:"
-$lblSrcProv.Location = "10,90"
+$lblSrcProv.Location = "10,50"
 $left.Controls.Add($lblSrcProv)
 
 $cbSrcProv = New-Object System.Windows.Forms.ComboBox
-$cbSrcProv.Location = "150,85"
+$cbSrcProv.Location = "150,45"
 $cbSrcProv.Width = 350
 $cbSrcProv.Items.AddRange($sourceProviders)
 $cbSrcProv.SelectedIndex = 0
@@ -164,11 +168,11 @@ $left.Controls.Add($cbSrcProv)
 # Source main value
 $lblSrcMain = New-Object System.Windows.Forms.Label
 $lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
-$lblSrcMain.Location = "10,130"
+$lblSrcMain.Location = "10,90"
 $left.Controls.Add($lblSrcMain)
 
 $srcInputPanel = New-Object System.Windows.Forms.Panel
-$srcInputPanel.Location = "150,125"
+$srcInputPanel.Location = "150,85"
 $srcInputPanel.Size = "360,30"
 $left.Controls.Add($srcInputPanel)
 
@@ -198,99 +202,99 @@ $cbSrcProv.Add_SelectedIndexChanged({
     })
 
 # ===============================================================
-# INLINE ATTRIBUTES (LEFT SIDE)
+# SOURCE CONNECTION ATTRIBUTES
 # ===============================================================
 
-$lblIPLeft = New-Object System.Windows.Forms.Label
-$lblIPLeft.Text = "computerName (IP only):"
-$lblIPLeft.Location = "10,170"
-$left.Controls.Add($lblIPLeft)
+$lblSrcIP = New-Object System.Windows.Forms.Label
+$lblSrcIP.Text = "computerName (IP only):"
+$lblSrcIP.Location = "10,130"
+$left.Controls.Add($lblSrcIP)
 
-$txtIPLeft = New-Object System.Windows.Forms.TextBox
-$txtIPLeft.Location = "150,165"
-$txtIPLeft.Width = 350
-$left.Controls.Add($txtIPLeft)
+$txtSrcIP = New-Object System.Windows.Forms.TextBox
+$txtSrcIP.Location = "150,125"
+$txtSrcIP.Width = 350
+$left.Controls.Add($txtSrcIP)
 
-$lblUserLeft = New-Object System.Windows.Forms.Label
-$lblUserLeft.Text = "userName:"
-$lblUserLeft.Location = "10,210"
-$left.Controls.Add($lblUserLeft)
+$lblSrcUser = New-Object System.Windows.Forms.Label
+$lblSrcUser.Text = "userName:"
+$lblSrcUser.Location = "10,170"
+$left.Controls.Add($lblSrcUser)
 
-$txtUserLeft = New-Object System.Windows.Forms.TextBox
-$txtUserLeft.Location = "150,205"
-$txtUserLeft.Width = 350
-$left.Controls.Add($txtUserLeft)
+$txtSrcUser = New-Object System.Windows.Forms.TextBox
+$txtSrcUser.Location = "150,165"
+$txtSrcUser.Width = 350
+$left.Controls.Add($txtSrcUser)
 
-$lblPassLeft = New-Object System.Windows.Forms.Label
-$lblPassLeft.Text = "password:"
-$lblPassLeft.Location = "10,250"
-$left.Controls.Add($lblPassLeft)
+$lblSrcPass = New-Object System.Windows.Forms.Label
+$lblSrcPass.Text = "password:"
+$lblSrcPass.Location = "10,210"
+$left.Controls.Add($lblSrcPass)
 
-$txtPassLeft = New-Object System.Windows.Forms.TextBox
-$txtPassLeft.Location = "150,245"
-$txtPassLeft.Width = 350
-$txtPassLeft.UseSystemPasswordChar = $true
-$left.Controls.Add($txtPassLeft)
+$txtSrcPass = New-Object System.Windows.Forms.TextBox
+$txtSrcPass.Location = "150,205"
+$txtSrcPass.Width = 350
+$txtSrcPass.UseSystemPasswordChar = $true
+$left.Controls.Add($txtSrcPass)
 
-$lblAuthLeft = New-Object System.Windows.Forms.Label
-$lblAuthLeft.Text = "authType:"
-$lblAuthLeft.Location = "10,290"
-$left.Controls.Add($lblAuthLeft)
+$lblSrcAuth = New-Object System.Windows.Forms.Label
+$lblSrcAuth.Text = "authType:"
+$lblSrcAuth.Location = "10,250"
+$left.Controls.Add($lblSrcAuth)
 
-$cbAuthLeft = New-Object System.Windows.Forms.ComboBox
-$cbAuthLeft.Location = "150,285"
-$cbAuthLeft.Width = 350
-$cbAuthLeft.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
-$cbAuthLeft.SelectedIndex = -1
-$left.Controls.Add($cbAuthLeft)
+$cbSrcAuth = New-Object System.Windows.Forms.ComboBox
+$cbSrcAuth.Location = "150,245"
+$cbSrcAuth.Width = 350
+$cbSrcAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
+$cbSrcAuth.SelectedIndex = -1
+$left.Controls.Add($cbSrcAuth)
 
-# Flags (Left)
-$lblFlagsLeft = New-Object System.Windows.Forms.Label
-$lblFlagsLeft.Text = "Global Flags:"
-$lblFlagsLeft.Location = "10,340"
-$left.Controls.Add($lblFlagsLeft)
+# Flags
+$lblFlags = New-Object System.Windows.Forms.Label
+$lblFlags.Text = "Global Flags:"
+$lblFlags.Location = "10,300"
+$left.Controls.Add($lblFlags)
 
-$lstFlagsLeft = New-Object System.Windows.Forms.CheckedListBox
-$lstFlagsLeft.Location = "10,365"
-$lstFlagsLeft.Size = "250,150"
-$lstFlagsLeft.Items.AddRange($flags)
-$left.Controls.Add($lstFlagsLeft)
+$lstFlags = New-Object System.Windows.Forms.CheckedListBox
+$lstFlags.Location = "10,325"
+$lstFlags.Size = "250,150"
+$lstFlags.Items.AddRange($flags)
+$left.Controls.Add($lstFlags)
 
-# Rules (Left)
-$lblRulesLeft = New-Object System.Windows.Forms.Label
-$lblRulesLeft.Text = "Rules:"
-$lblRulesLeft.Location = "300,340"
-$left.Controls.Add($lblRulesLeft)
+# Rules
+$lblRules = New-Object System.Windows.Forms.Label
+$lblRules.Text = "Rules:"
+$lblRules.Location = "300,300"
+$left.Controls.Add($lblRules)
 
-$lstRulesLeft = New-Object System.Windows.Forms.CheckedListBox
-$lstRulesLeft.Location = "300,365"
-$lstRulesLeft.Size = "250,150"
-$lstRulesLeft.Items.AddRange($rules)
-$left.Controls.Add($lstRulesLeft)
+$lstRules = New-Object System.Windows.Forms.CheckedListBox
+$lstRules.Location = "300,325"
+$lstRules.Size = "250,150"
+$lstRules.Items.AddRange($rules)
+$left.Controls.Add($lstRules)
 
-# Enable Links (Left)
-$lblELinksLeft = New-Object System.Windows.Forms.Label
-$lblELinksLeft.Text = "Enable Links:"
-$lblELinksLeft.Location = "10,530"
-$left.Controls.Add($lblELinksLeft)
+# Enable Links
+$lblELinks = New-Object System.Windows.Forms.Label
+$lblELinks.Text = "Enable Links:"
+$lblELinks.Location = "10,490"
+$left.Controls.Add($lblELinks)
 
-$lstELinksLeft = New-Object System.Windows.Forms.CheckedListBox
-$lstELinksLeft.Location = "10,555"
-$lstELinksLeft.Size = "250,150"
-$lstELinksLeft.Items.AddRange($enableLinks)
-$left.Controls.Add($lstELinksLeft)
+$lstELinks = New-Object System.Windows.Forms.CheckedListBox
+$lstELinks.Location = "10,515"
+$lstELinks.Size = "250,150"
+$lstELinks.Items.AddRange($enableLinks)
+$left.Controls.Add($lstELinks)
 
-# Disable Links (Left)
-$lblDLinksLeft = New-Object System.Windows.Forms.Label
-$lblDLinksLeft.Text = "Disable Links:"
-$lblDLinksLeft.Location = "300,530"
-$left.Controls.Add($lblDLinksLeft)
+# Disable Links
+$lblDLinks = New-Object System.Windows.Forms.Label
+$lblDLinks.Text = "Disable Links:"
+$lblDLinks.Location = "300,490"
+$left.Controls.Add($lblDLinks)
 
-$lstDLinksLeft = New-Object System.Windows.Forms.CheckedListBox
-$lstDLinksLeft.Location = "300,555"
-$lstDLinksLeft.Size = "250,150"
-$lstDLinksLeft.Items.AddRange($disableLinks)
-$left.Controls.Add($lstDLinksLeft)
+$lstDLinks = New-Object System.Windows.Forms.CheckedListBox
+$lstDLinks.Location = "300,515"
+$lstDLinks.Size = "250,150"
+$lstDLinks.Items.AddRange($disableLinks)
+$left.Controls.Add($lstDLinks)
 
 # ===============================================================
 # RIGHT PANEL (DESTINATION)
@@ -321,7 +325,7 @@ $cbDstProv.Items.AddRange($destProviders)
 $cbDstProv.SelectedIndex = 0
 $right.Controls.Add($cbDstProv)
 
-# Main provider argument
+# Destination main value
 $lblDstMain = New-Object System.Windows.Forms.Label
 $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
 $lblDstMain.Location = "10,90"
@@ -355,6 +359,53 @@ $cbDstProv.Add_SelectedIndexChanged({
         $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
         Update-ProviderInputMode -Side "Destination" -Provider $cbDstProv.SelectedItem
     })
+
+# ===============================================================
+# DESTINATION CONNECTION ATTRIBUTES
+# ===============================================================
+
+$lblDstIP = New-Object System.Windows.Forms.Label
+$lblDstIP.Text = "computerName (IP only):"
+$lblDstIP.Location = "10,130"
+$right.Controls.Add($lblDstIP)
+
+$txtDstIP = New-Object System.Windows.Forms.TextBox
+$txtDstIP.Location = "175,125"
+$txtDstIP.Width = 350
+$right.Controls.Add($txtDstIP)
+
+$lblDstUser = New-Object System.Windows.Forms.Label
+$lblDstUser.Text = "userName:"
+$lblDstUser.Location = "10,170"
+$right.Controls.Add($lblDstUser)
+
+$txtDstUser = New-Object System.Windows.Forms.TextBox
+$txtDstUser.Location = "175,165"
+$txtDstUser.Width = 350
+$right.Controls.Add($txtDstUser)
+
+$lblDstPass = New-Object System.Windows.Forms.Label
+$lblDstPass.Text = "password:"
+$lblDstPass.Location = "10,210"
+$right.Controls.Add($lblDstPass)
+
+$txtDstPass = New-Object System.Windows.Forms.TextBox
+$txtDstPass.Location = "175,205"
+$txtDstPass.Width = 350
+$txtDstPass.UseSystemPasswordChar = $true
+$right.Controls.Add($txtDstPass)
+
+$lblDstAuth = New-Object System.Windows.Forms.Label
+$lblDstAuth.Text = "authType:"
+$lblDstAuth.Location = "10,250"
+$right.Controls.Add($lblDstAuth)
+
+$cbDstAuth = New-Object System.Windows.Forms.ComboBox
+$cbDstAuth.Location = "175,245"
+$cbDstAuth.Width = 350
+$cbDstAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
+$cbDstAuth.SelectedIndex = -1
+$right.Controls.Add($cbDstAuth)
 
 $providerUiStates = @{
     "Source" = [ordered]@{
@@ -523,10 +574,6 @@ $btnDstBrowse.Add_Click({
         Invoke-BrowseDialog -Side "Destination"
     })
 
-# Right side destination provider input positioned after the inline attributes
-$lblDstMain.Location = "10,290"
-$dstInputPanel.Location = "175,285"
-
 # ===============================================================
 # COMMAND PREVIEW
 # ===============================================================
@@ -572,20 +619,40 @@ function Get-MsDeployCommandString {
     $dstValue = Get-ProviderMainValue -Side "Destination"
     $dest = if ($dstValue) { "-dest:$dstProv=`"$dstValue`"" } else { "-dest:$dstProv" }
 
-    $destAttributes = @()
+    # Source attributes
+    $srcAttributes = @()
+    if ($txtSrcIP.Text.Trim()) {
+        $srcAttributes += "computerName=`"$($txtSrcIP.Text.Trim())`""
+    }
+    if ($txtSrcUser.Text.Trim()) {
+        $srcAttributes += "userName=`"$($txtSrcUser.Text.Trim())`""
+    }
+    if ($txtSrcPass.Text.Trim()) {
+        $passwordValue = if ($IncludePassword) { $txtSrcPass.Text.Trim() } else { "<hidden>" }
+        $srcAttributes += "password=`"$passwordValue`""
+    }
+    if ($cbSrcAuth.SelectedItem) {
+        $srcAttributes += "authType=`"$($cbSrcAuth.SelectedItem)`""
+    }
 
-    if ($txtIP.Text.Trim()) {
-        $destAttributes += "computerName=`"$($txtIP.Text.Trim())`""
+    if ($srcAttributes.Count -gt 0) {
+        $src += "," + ($srcAttributes -join ",")
     }
-    if ($txtUser.Text.Trim()) {
-        $destAttributes += "userName=`"$($txtUser.Text.Trim())`""
+
+    # Destination attributes
+    $destAttributes = @()
+    if ($txtDstIP.Text.Trim()) {
+        $destAttributes += "computerName=`"$($txtDstIP.Text.Trim())`""
     }
-    if ($txtPass.Text.Trim()) {
-        $passwordValue = if ($IncludePassword) { $txtPass.Text.Trim() } else { "<hidden>" }
+    if ($txtDstUser.Text.Trim()) {
+        $destAttributes += "userName=`"$($txtDstUser.Text.Trim())`""
+    }
+    if ($txtDstPass.Text.Trim()) {
+        $passwordValue = if ($IncludePassword) { $txtDstPass.Text.Trim() } else { "<hidden>" }
         $destAttributes += "password=`"$passwordValue`""
     }
-    if ($cbAuth.SelectedItem) {
-        $destAttributes += "authType=`"$($cbAuth.SelectedItem)`""
+    if ($cbDstAuth.SelectedItem) {
+        $destAttributes += "authType=`"$($cbDstAuth.SelectedItem)`""
     }
 
     if ($destAttributes.Count -gt 0) {
@@ -673,13 +740,13 @@ function Invoke-MsDeployCommand {
 }
 
 # Update preview on change
-foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbAuth, $cbSrcSites, $cbDstSites)) {
+foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbSrcAuth, $cbDstAuth, $cbSrcSites, $cbDstSites)) {
     # ComboBox controls support TextChanged and SelectedIndexChanged
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
     $ctl.Add_SelectedIndexChanged({ Update-Command }) 2>$null
 }
 
-foreach ($ctl in @($txtSrcMain, $txtDstMain, $txtIP, $txtUser, $txtPass)) {
+foreach ($ctl in @($txtSrcMain, $txtDstMain, $txtSrcIP, $txtSrcUser, $txtSrcPass, $txtDstIP, $txtDstUser, $txtDstPass)) {
     # TextBox controls only support TextChanged
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
 }

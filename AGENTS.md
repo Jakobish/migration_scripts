@@ -1,46 +1,76 @@
-# AGENTS.md
+# Agent Rules Standard (AGENTS.md)
 
-This file provides guidance to agents when working with code in this repository.
+This file provides comprehensive guidance for all agents working with the IIS migration scripts repository.
 
 ## Critical Execution Requirements
 
-- All scripts require IIS WebAdministration module (`Import-Module WebAdministration`)
-- Microsoft Web Deploy V3 must be installed at `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`
-- Scripts must run with Administrator privileges for IIS operations
-- msdeploy commands must be wrapped in `cmd.exe /c` (not executed directly in PowerShell)
+- **msdeploy commands**: MUST be wrapped in `cmd.exe /c` (direct execution fails)
+- **Microsoft Web Deploy V3**: Required at `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`
+- **Administrator privileges**: All scripts require elevated permissions
+- **PowerShell directives**: All scripts require `#Requires -RunAsAdministrator`
 
-## Script Architecture
+## Architecture Overview
 
-- `source-scripts/` - Migration scripts that export/migrate FROM this server
-- `destination-scripts/` - Setup scripts that run ON destination server
-- GUI scripts (`gui-migrate-websites.ps1`) provide interactive workflows
-- CLI scripts (`migrate-websites.ps1`) support batch processing with parameters
+### Two-Tier Script Structure
 
-## Critical Implementation Patterns
+- **source-scripts/**: Scripts for exporting/migrating FROM current server
+- **destination-scripts/**: Scripts for setup ON target server
 
-- Variable naming inconsistency: `$name` vs `$sitename` - both used for same site variable
-- Application pool objects may return as arrays - extract with `$pool[0]` check
-- ACL commands use `$appPoolIdentity = "IIS APPPOOL\$pool"` format
-- Logs use dual output: `Tee-Object` for console + file simultaneously
-- Error suppression with `2>$null` for non-critical operations
+### Module Fallback Architecture
+
+- Primary: `IISAdministration` module
+- Fallback: `WebAdministration` with edition checking
+- IISAdministration detection requires explicit command availability checks
+- Uses `Add-WindowsFeature` (not `Install-WindowsFeature`)
+
+## Implementation Patterns & Known Issues
+
+### Variable Naming Inconsistencies
+
+- **$name vs $sitename**: Both variables used for same site - architectural debt that must be maintained
+- **Line 86 in migrate-websites.ps1**: Uses wrong variable - requires careful handling
+- **$DestinatoinServerIP vs $DestinationServerIP**: Parameter typo became part of public API - changing breaks compatibility
+
+### Application Pool Handling
+
+- Application pool objects may return as arrays - always use `$pool[0]` extraction
+- ACL identity format: `$appPoolIdentity = "IIS APPPOOL\$pool"`
+
+### Logging & Error Handling
+
+- **Dual logging**: `Tee-Object` for console + file simultaneously
+- **Error suppression**: `2>$null` for non-critical operations can hide failures
+- **msdeploy failures**: Don't throw PowerShell exceptions - check `$LASTEXITCODE`
+- **Log directories**: Auto-created - check `.\site-logs` if missing
 
 ## Required Dependencies
 
-- `System.Web.Security.Membership` for password generation (`GeneratePassword`)
-- IIS application pool access via `Get-WebConfigurationProperty`
-- Windows user creation via `net user` commands
-- Windows ACL management via msdeploy setAcl operations
+- **Password generation**: `System.Web.Security.Membership` with `GeneratePassword(20, 4)`
+- **Windows user creation**: `net.exe user` commands (not PowerShell cmdlets)
+- **ACL management**: msdeploy with specific `-enableLink` flags
 
-## Execution Commands
+## ACL Management Requirements
 
-- Run GUI: `powershell -ExecutionPolicy Bypass .\source-scripts\gui-migrate-websites.ps1`
-- Run batch migration: `powershell -ExecutionPolicy Bypass .\source-scripts\migrate-websites.ps1 -DestinationServer "SERVER" -DestUsername "user"`
-- Setup destination: `powershell -ExecutionPolicy Bypass .\destination-scripts\create-iis-users.ps1`
+### Required msdeploy Flags
+
+```cmd
+-enableLink:AppPoolExtension,ContentExtension,CertificateExtension
+```
+
+### Key Notes
+
+- ACL sync failures are non-fatal - script continues but warnings suppressed
+- ACL management is centralized through msdeploy with specific flag combinations
 
 ## Non-Obvious Gotchas
 
-- Site binding IP replacement uses regex `"\d{1,3}(\.\d{1,3}){3}"` for auto-updating server references
-- SecureString parameters cannot be passed via command line - prompt user or use alternative
-- ACL sync requires `-enableLink:AppPoolExtension,ContentExtension,CertificateExtension` flags
-- Log directories auto-created if missing (`.`, `.\site-logs`)
-- Batch processing supports WhatIf mode for dry runs without actual migration
+### Multi-language Support
+
+- **Hebrew comments**: Server-Setup-Util.ps1 contains Hebrew comments (פשוט, אפשרות, משאיר)
+- **Internationalization**: Multilingual documentation needs not yet implemented
+
+### Command Execution
+
+- **WhatIf mode**: Only logs intended commands - actual execution still pending
+- **Batch processing**: Supports dry runs without actual migration
+- **Commented-out blocks**: ACL sync, retry logic suggest incomplete architectural decisions
