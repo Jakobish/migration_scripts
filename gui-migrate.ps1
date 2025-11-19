@@ -1,4 +1,6 @@
 #Requires -RunAsAdministrator
+Import-Module WebAdministration
+Import-Module (Join-Path $PSScriptRoot "MigrationHelper.psm1")
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -173,18 +175,37 @@ $btnCopyDstToSrc = New-ActionButton -Text "Copy Destination → Source" -Tooltip
 $btnSwapSides = New-ActionButton -Text "Swap Source & Destination" -TooltipText "Exchange both sides so you can easily reverse a migration."
 $btnRefreshSites = New-ActionButton -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
 $btnClearAll = New-ActionButton -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
+$btnSaveState = New-ActionButton -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
+$btnLoadState = New-ActionButton -Text "Load Layout (JSON/XML)" -TooltipText "Load inputs from a previously saved JSON or XML file."
 
 $actionPanel.Controls.Add($btnCopySrcToDst)
 $actionPanel.Controls.Add($btnCopyDstToSrc)
 $actionPanel.Controls.Add($btnSwapSides)
 $actionPanel.Controls.Add($btnRefreshSites)
 $actionPanel.Controls.Add($btnClearAll)
+$actionPanel.Controls.Add($btnSaveState)
+$actionPanel.Controls.Add($btnLoadState)
 
 $btnCopySrcToDst.Add_Click({ Copy-SideConfiguration -From "Source" -To "Destination" })
 $btnCopyDstToSrc.Add_Click({ Copy-SideConfiguration -From "Destination" -To "Source" })
-$btnSwapSides.Add_Click({ Swap-SideConfiguration })
-$btnRefreshSites.Add_Click({ Refresh-AllSiteCombos })
+$btnSwapSides.Add_Click({ Switch-SideConfiguration })
+$btnRefreshSites.Add_Click({ Initialize-AllSiteCombos })
 $btnClearAll.Add_Click({ Clear-AllInputs })
+$btnSaveState.Add_Click({
+        $dialog = New-Object System.Windows.Forms.SaveFileDialog
+        $dialog.Filter = "JSON files (*.json)|*.json|XML files (*.xml)|*.xml|All files (*.*)|*.*"
+        $dialog.DefaultExt = "json"
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            Save-GuiStateToFile -Path $dialog.FileName
+        }
+    })
+$btnLoadState.Add_Click({
+        $dialog = New-Object System.Windows.Forms.OpenFileDialog
+        $dialog.Filter = "JSON files (*.json)|*.json|XML files (*.xml)|*.xml|All files (*.*)|*.*"
+        if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
+            Read-GuiStateFromFile -Path $dialog.FileName
+        }
+    })
 
 # ===============================================================
 # COMMON VERB CONFIGURATION
@@ -669,6 +690,132 @@ function Reset-CheckedListBox {
     }
 }
 
+function Get-CheckedItems {
+    param([System.Windows.Forms.CheckedListBox]$List)
+    if (-not $List) { return @() }
+    return @($List.CheckedItems | ForEach-Object { [string]$_ })
+}
+
+function Set-CheckedItems {
+    param(
+        [System.Windows.Forms.CheckedListBox]$List,
+        [object[]]$Items
+    )
+
+    if (-not $List) { return }
+    Reset-CheckedListBox $List
+
+    if (-not $Items) { return }
+
+    foreach ($item in $Items) {
+        $index = $List.Items.IndexOf($item)
+        if ($index -ge 0) {
+            $List.SetItemChecked($index, $true)
+        }
+    }
+}
+
+function Get-GuiState {
+    return [ordered]@{
+        Verb         = $cbVerb.SelectedItem
+        Source       = Get-SideConfiguration -Side "Source"
+        Destination  = Get-SideConfiguration -Side "Destination"
+        Flags        = Get-CheckedItems $lstFlags
+        Rules        = Get-CheckedItems $lstRules
+        EnableLinks  = Get-CheckedItems $lstELinks
+        DisableLinks = Get-CheckedItems $lstDLinks
+    }
+}
+
+function Set-GuiState {
+    param([object]$State)
+    if (-not $State) { return }
+
+    if ($State.Verb -and $cbVerb.Items.Contains($State.Verb)) {
+        $cbVerb.SelectedItem = $State.Verb
+    }
+    elseif ($cbVerb.Items.Count -gt 0) {
+        $cbVerb.SelectedIndex = 0
+    }
+
+    if ($State.Source) {
+        Set-SideConfiguration -Side "Source" -Config $State.Source
+    }
+
+    if ($State.Destination) {
+        Set-SideConfiguration -Side "Destination" -Config $State.Destination
+    }
+
+    Set-CheckedItems -List $lstFlags -Items $State.Flags
+    Set-CheckedItems -List $lstRules -Items $State.Rules
+    Set-CheckedItems -List $lstELinks -Items $State.EnableLinks
+    Set-CheckedItems -List $lstDLinks -Items $State.DisableLinks
+
+    Update-Command
+}
+
+function Save-GuiStateToFile {
+    param([string]$Path)
+    if ([string]::IsNullOrWhiteSpace($Path)) { return }
+
+    try {
+        $state = Get-GuiState
+        $extension = ([System.IO.Path]::GetExtension($Path)).ToLowerInvariant()
+
+        switch ($extension) {
+            ".json" {
+                $state | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
+            }
+            ".xml" {
+                $state | Export-Clixml -Path $Path
+            }
+            default {
+                $state | ConvertTo-Json -Depth 8 | Set-Content -Path $Path -Encoding UTF8
+            }
+        }
+
+        [System.Windows.Forms.MessageBox]::Show("Saved GUI state to $Path.", "MSDeploy PowerShell GUI") | Out-Null
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show("Failed to save state: $($_.Exception.Message)", "MSDeploy PowerShell GUI") | Out-Null
+    }
+}
+
+function Read-GuiStateFromFile {
+    param([string]$Path)
+
+    if (-not (Test-Path $Path)) {
+        [System.Windows.Forms.MessageBox]::Show("File not found: $Path", "MSDeploy PowerShell GUI") | Out-Null
+        return
+    }
+
+    try {
+        $extension = ([System.IO.Path]::GetExtension($Path)).ToLowerInvariant()
+        switch ($extension) {
+            ".json" {
+                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
+            }
+            ".xml" {
+                $state = Import-Clixml -Path $Path
+            }
+            default {
+                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
+            }
+        }
+
+        if (-not $state) {
+            [System.Windows.Forms.MessageBox]::Show("State file was empty or invalid.", "MSDeploy PowerShell GUI") | Out-Null
+            return
+        }
+
+        Set-GuiState -State $state
+        [System.Windows.Forms.MessageBox]::Show("Loaded GUI state from $Path.", "MSDeploy PowerShell GUI") | Out-Null
+    }
+    catch {
+        [System.Windows.Forms.MessageBox]::Show("Failed to load state: $($_.Exception.Message)", "MSDeploy PowerShell GUI") | Out-Null
+    }
+}
+
 function Get-SideConfiguration {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side
@@ -763,7 +910,7 @@ function Copy-SideConfiguration {
     Update-Command
 }
 
-function Swap-SideConfiguration {
+function Switch-SideConfiguration {
     $sourceState = Get-SideConfiguration -Side "Source"
     $destState = Get-SideConfiguration -Side "Destination"
     Set-SideConfiguration -Side "Source" -Config $destState
@@ -811,7 +958,7 @@ function Clear-AllInputs {
     Update-Command
 }
 
-function Refresh-SiteCombo {
+function Initialize-SiteCombo {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side
     )
@@ -833,9 +980,9 @@ function Refresh-SiteCombo {
     }
 }
 
-function Refresh-AllSiteCombos {
-    Refresh-SiteCombo -Side "Source"
-    Refresh-SiteCombo -Side "Destination"
+function Initialize-AllSiteCombos {
+    Initialize-SiteCombo -Side "Source"
+    Initialize-SiteCombo -Side "Destination"
     Update-Command
 }
 
