@@ -29,10 +29,10 @@ param(
     [string]$BaseUrl,
     
     [Parameter(Mandatory=$false)]
-    [switch]$CacheModules = $true,
+    [switch]$CacheModules,
     
     [Parameter(Mandatory=$false)]
-    [switch]$ForceDownload = $false
+    [switch]$ForceDownload
 )
 
 $ErrorActionPreference = "Stop"
@@ -78,7 +78,7 @@ function Import-WebModule {
     # Check cache first
     $cachedPath = $null
     
-    if ($CacheModules -and -not $ForceDownload) {
+    if ($CacheModules -eq $true -and $ForceDownload -ne $true) {
         $cacheDir = Join-Path $env:TEMP "IISMigrationGUI_Modules"
         $cachedPath = Join-Path $cacheDir "$ModuleName.psm1"
         
@@ -124,7 +124,7 @@ function Import-WebModule {
         }
         
         # Cache the module if caching is enabled
-        if ($CacheModules) {
+        if ($CacheModules -eq $true) {
             $cacheDir = Join-Path $env:TEMP "IISMigrationGUI_Modules"
             if (-not (Test-Path $cacheDir)) {
                 New-Item -ItemType Directory -Force -Path $cacheDir | Out-Null
