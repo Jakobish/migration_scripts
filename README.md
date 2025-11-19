@@ -2,32 +2,32 @@
 
 > A comprehensive toolkit for migrating IIS websites, application pools, and configurations between Windows servers using Microsoft Web Deploy
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](https://docs.microsoft.com/en-us/powershell/)
-[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](https://www.microsoft.com/windows/)
+[![License: MIT] (https://img.shields.io/badge/License-MIT-yellow.svg)] (<https://opensource.org/licenses/MIT>)
+[![PowerShell] (https://img.shields.io/badge/PowerShell-5.1+-blue.svg)] (<https://docs.microsoft.com/en-us/powershell/>)
+[![Platform] (https://img.shields.io/badge/Platform-Windows-lightgrey.svg)] (<https://www.microsoft.com/windows/>)
 
 ## 📋 Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Easy Execution](#easy-execution)
-  - [Windows Batch Launcher](#windows-batch-launcher)
-  - [macOS Command Launcher](#macos-command-launcher)
-  - [Remote GUI Launcher](#remote-gui-launcher)
-- [Architecture](#architecture)
-- [Scripts Reference](#scripts-reference)
-  - [Source Scripts](#source-scripts)
-  - [Destination Scripts](#destination-scripts)
-  - [GUI Tool](#gui-tool)
-- [Usage Examples](#usage-examples)
-- [Configuration](#configuration)
-- [Troubleshooting](#troubleshooting)
-- [Contributing](#contributing)
-- [License](#license)
-- [Support](#support)
+- [Overview] (#overview)
+- [Features] (#features)
+- [Prerequisites] (#prerequisites)
+- [Installation] (#installation)
+- [Quick Start] (#quick-start)
+- [Easy Execution] (#easy-execution)
+  - [Windows Batch Launcher] (#windows-batch-launcher)
+  - [macOS Command Launcher] (#macos-command-launcher)
+  - [Remote GUI Launcher] (#remote-gui-launcher)
+- [Architecture] (#architecture)
+- [Scripts Reference] (#scripts-reference)
+  - [Source Scripts] (#source-scripts)
+  - [Destination Scripts] (#destination-scripts)
+  - [GUI Tool] (#gui-tool)
+- [Usage Examples] (#usage-examples)
+- [Configuration] (#configuration)
+- [Troubleshooting] (#troubleshooting)
+- [Contributing] (#contributing)
+- [License] (#license)
+- [Support] (#support)
 
 ## 🎯 Overview
 
@@ -73,7 +73,7 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 ### Required Software
 
 1. **Microsoft Web Deploy V3**: Must be installed at `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`
-   - Download: [Microsoft Web Deploy](https://www.microsoft.com/en-us/download/details.aspx?id=43717)
+   - Download: [Microsoft Web Deploy] (<https://www.microsoft.com/en-us/download/details.aspx?id=43717>)
 
 2. **IIS Management Tools**:
 
@@ -86,7 +86,7 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 - `WebAdministration` (primary)
 - `IISAdministration` (fallback)
 
-## 🚀 Installation
+## │▌│ Installation ▌│
 
 1. **Clone the repository**:
 
@@ -137,13 +137,13 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 
 ### Using the GUI Tool
 
-**Recommended: Web-Hosted Execution (Single Command)**
+#### **Recommended: Web-Hosted Execution (Single Command)**
 
 ```powershell
 iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
 ```
 
-**Alternative: Local File Execution**
+#### **Alternative: Local File Execution**
 
 ```powershell
 .\gui-migrate.ps1
@@ -330,7 +330,7 @@ The main GUI tool includes a built-in remote launcher accessible via the "Remote
 
 The project follows a two-tier architecture designed for secure and efficient migration:
 
-```
+```md
 ┌─────────────────┐    ┌─────────────────┐
 │  Source Server  │───▶│ Destination     │
 │                 │    │ Server          │
@@ -735,13 +735,13 @@ When reporting issues, please include:
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License - see the [LICENSE] (LICENSE) file for details.
 
 ## 📞 Support
 
 ### Getting Help
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/yourusername/iis-migration-scripts/issues)
+- **GitHub Issues**: [Report bugs or request features] (<https://github.com/yourusername/iis-migration-scripts/issues>)
 - **Documentation**: Check this README and inline code comments
 - **Logs**: Review the log files for detailed error information
 
