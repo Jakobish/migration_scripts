@@ -168,6 +168,7 @@ $btnRefreshSites = New-ActionButton -ToolTip $toolTip -Text "Refresh IIS Site Li
 $btnClearAll = New-ActionButton -ToolTip $toolTip -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
 $btnSaveState = New-ActionButton -ToolTip $toolTip -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
 $btnLoadState = New-ActionButton -ToolTip $toolTip -Text "Load Layout (JSON/XML)" -TooltipText "Load inputs from a previously saved JSON or XML file."
+$btnRemoteGui = New-ActionButton -ToolTip $toolTip -Text "Remote GUI Launcher" -TooltipText "Launch the IIS Migration GUI on a remote server."
 
 $actionPanel.Controls.Add($btnCopySrcToDst)
 $actionPanel.Controls.Add($btnCopyDstToSrc)
@@ -176,6 +177,7 @@ $actionPanel.Controls.Add($btnRefreshSites)
 $actionPanel.Controls.Add($btnClearAll)
 $actionPanel.Controls.Add($btnSaveState)
 $actionPanel.Controls.Add($btnLoadState)
+$actionPanel.Controls.Add($btnRemoteGui)
 
 $btnCopySrcToDst.Add_Click({ Copy-SideConfigurationLocal -From "Source" -To "Destination" })
 $btnCopyDstToSrc.Add_Click({ Copy-SideConfigurationLocal -From "Destination" -To "Source" })
@@ -196,6 +198,10 @@ $btnLoadState.Add_Click({
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
             Load-GuiState -Path $dialog.FileName
         }
+    })
+
+$btnRemoteGui.Add_Click({
+        Show-RemoteGuiDialog
     })
 
 # ===============================================================
@@ -614,6 +620,130 @@ function Load-GuiState {
     param([string]$Path)
     Load-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
     Update-Command
+}
+
+function Show-RemoteGuiDialog {
+    $dialog = New-Object System.Windows.Forms.Form
+    $dialog.Text = "Remote GUI Launcher"
+    $dialog.Size = New-Object System.Drawing.Size(500, 300)
+    $dialog.StartPosition = "CenterScreen"
+    $dialog.FormBorderStyle = "FixedDialog"
+    $dialog.MaximizeBox = $false
+    $dialog.MinimizeBox = $false
+
+    # Title
+    $titleLabel = New-Object System.Windows.Forms.Label
+    $titleLabel.Text = "Launch IIS Migration GUI on Remote Server"
+    $titleLabel.Font = "Segoe UI,12,style=Bold"
+    $titleLabel.Location = "10,10"
+    $titleLabel.Size = "400,25"
+    $dialog.Controls.Add($titleLabel)
+
+    # Computer name
+    $lblComputer = New-Object System.Windows.Forms.Label
+    $lblComputer.Text = "Computer Name/IP:"
+    $lblComputer.Location = "10,50"
+    $lblComputer.Size = "120,20"
+    $dialog.Controls.Add($lblComputer)
+
+    $txtComputer = New-Object System.Windows.Forms.TextBox
+    $txtComputer.Location = "10,70"
+    $txtComputer.Size = "460,20"
+    $dialog.Controls.Add($txtComputer)
+
+    # Username
+    $lblUsername = New-Object System.Windows.Forms.Label
+    $lblUsername.Text = "Username (optional):"
+    $lblUsername.Location = "10,100"
+    $lblUsername.Size = "120,20"
+    $dialog.Controls.Add($lblUsername)
+
+    $txtUsername = New-Object System.Windows.Forms.TextBox
+    $txtUsername.Location = "10,120"
+    $txtUsername.Size = "460,20"
+    $dialog.Controls.Add($txtUsername)
+
+    # Method selection
+    $lblMethod = New-Object System.Windows.Forms.Label
+    $lblMethod.Text = "Connection Method:"
+    $lblMethod.Location = "10,150"
+    $lblMethod.Size = "120,20"
+    $dialog.Controls.Add($lblMethod)
+
+    $cbMethod = New-Object System.Windows.Forms.ComboBox
+    $cbMethod.Location = "10,170"
+    $cbMethod.Size = "200,20"
+    $cbMethod.Items.AddRange(@("WinRM", "RDP", "Local"))
+    $cbMethod.SelectedIndex = 0
+    $dialog.Controls.Add($cbMethod)
+
+    # Help text
+    $helpLabel = New-Object System.Windows.Forms.Label
+    $helpLabel.Text = "WinRM: Execute GUI directly on remote server`nRDP: Launch Remote Desktop connection`nLocal: Launch GUI on this computer"
+    $helpLabel.Location = "220,150"
+    $helpLabel.Size = "250,60"
+    $helpLabel.Font = "Segoe UI,8"
+    $dialog.Controls.Add($helpLabel)
+
+    # Buttons
+    $btnOK = New-Object System.Windows.Forms.Button
+    $btnOK.Text = "Launch"
+    $btnOK.Location = "300,230"
+    $btnOK.Size = "80,30"
+    $btnOK.DialogResult = "OK"
+    $dialog.Controls.Add($btnOK)
+
+    $btnCancel = New-Object System.Windows.Forms.Button
+    $btnCancel.Text = "Cancel"
+    $btnCancel.Location = "390,230"
+    $btnCancel.Size = "80,30"
+    $btnCancel.DialogResult = "Cancel"
+    $dialog.Controls.Add($btnCancel)
+
+    $dialog.AcceptButton = $btnOK
+    $dialog.CancelButton = $btnCancel
+
+    $result = $dialog.ShowDialog()
+    
+    if ($result -eq "OK") {
+        $computerName = $txtComputer.Text.Trim()
+        $username = $txtUsername.Text.Trim()
+        $method = $cbMethod.SelectedItem
+        
+        if (-not $computerName) {
+            [System.Windows.Forms.MessageBox]::Show("Please enter a computer name or IP address.", "Remote GUI Launcher") | Out-Null
+            return
+        }
+
+        # Build and execute the remote GUI command
+        $scriptPath = Join-Path $PSScriptRoot "invoke-remote-gui.ps1"
+        if (-not (Test-Path $scriptPath)) {
+            [System.Windows.Forms.MessageBox]::Show("invoke-remote-gui.ps1 not found. Please ensure it's in the same directory as this GUI.", "Remote GUI Launcher") | Out-Null
+            return
+        }
+
+        # Launch in a new PowerShell window
+        $arguments = @("-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-ComputerName", "`"$computerName`"")
+        
+        if ($username) {
+            $arguments += "-Username"
+            $arguments += "`"$username`""
+        }
+        
+        $arguments += "-Method"
+        $arguments += "`"$method`""
+
+        try {
+            Start-Process powershell -ArgumentList $arguments -Verb RunAs
+            Write-LogLines @(
+                "Remote GUI launcher started for: $computerName",
+                "Method: $method $(if($username){ "with username: $username" }else{ "using current credentials" })"
+            )
+        }
+        catch {
+            [System.Windows.Forms.MessageBox]::Show("Failed to launch remote GUI: $($_.Exception.Message)", "Remote GUI Launcher") | Out-Null
+        }
+    }
 }
 
 $btnSrcBrowse.Add_Click({

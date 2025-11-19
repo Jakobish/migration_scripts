@@ -9,10 +9,14 @@
 ## 📋 Table of Contents
 
 - [Overview](#overview)
-- [Features](#features)
+- [Features](#%EF%B8%8F-features)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
 - [Quick Start](#quick-start)
+- [Easy Execution](#easy-execution)
+  - [Windows Batch Launcher](#windows-batch-launcher)
+  - [macOS Command Launcher](#macos-command-launcher)
+  - [Remote GUI Launcher](#remote-gui-launcher)
 - [Architecture](#architecture)
 - [Scripts Reference](#scripts-reference)
   - [Source Scripts](#source-scripts)
@@ -133,11 +137,192 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 
 ### Using the GUI Tool
 
+**Recommended: Web-Hosted Execution (Single Command)**
+
+```powershell
+iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
+```
+
+**Alternative: Local File Execution**
+
 ```powershell
 .\gui-migrate.ps1
 ```
 
-The GUI provides an intuitive interface for building migration commands with real-time preview and execution capabilities.
+The GUI provides an intuitive interface for building migration commands with real-time preview and execution capabilities. The web-hosted version automatically downloads all required modules and provides identical functionality.
+
+## ⚡ Easy Execution
+
+The project includes multiple launcher files and execution methods to suit different deployment scenarios:
+
+### 🌐 **Recommended: Web-Hosted Execution**
+
+The easiest and most flexible method for Windows environments:
+
+```powershell
+# Single command execution - no local files needed
+iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
+```
+
+**Features:**
+
+- **Zero Dependencies**: No local files or module installations required
+- **Automatic Module Loading**: Downloads all required .psm1 modules automatically
+- **Smart Caching**: Modules cached in `%TEMP%\IISMigrationGUI_Modules` for performance
+- **Enterprise Ready**: Perfect for multi-server deployments
+- **Always Current**: Automatically uses the latest hosted version
+
+**Advanced Usage:**
+
+```powershell
+# Custom module location
+.\web-hosted-gui-migrate.ps1 -BaseUrl "https://myserver.com/modules"
+
+# Force re-download, disable caching
+.\web-hosted-gui-migrate.ps1 -CacheModules:$false -ForceDownload
+```
+
+**Hosting Requirements:**
+
+- Web server with HTTPS support
+- All required .psm1 modules available at the same URL
+- Proper PowerShell MIME types configured
+
+### 💻 **Platform-Specific Launchers**
+
+### Windows Batch Launcher
+
+For Windows users, use the batch file for easy GUI execution:
+
+```cmd
+start-gui.bat
+```
+
+**Features:**
+
+- Automatically launches PowerShell with administrator privileges
+- Handles UAC elevation requests
+- Validates PowerShell availability
+- Works on Windows 10/11 and Windows Server 2012 R2+
+
+**Usage:**
+
+1. Double-click `start-gui.bat` in Windows Explorer
+2. Approve the UAC prompt when requested
+3. Wait for the PowerShell GUI to launch
+
+### macOS Command Launcher
+
+For macOS users running PowerShell:
+
+```bash
+./start-gui.command
+```
+
+**Features:**
+
+- Validates PowerShell (pwsh) installation
+- Executes with sudo privileges
+- Provides helpful error messages for missing dependencies
+- Checks for required files in the current directory
+
+**Prerequisites for macOS:**
+
+- PowerShell Core installed (`pwsh`)
+- Administrator access via sudo
+- Run from the IIS migration scripts directory
+
+**Installation on macOS:**
+
+```bash
+# Install PowerShell via Homebrew
+brew install --cask powershell
+
+# Or download from PowerShell releases page
+# https://github.com/PowerShell/PowerShell/releases
+```
+
+**Usage:**
+
+1. Open Terminal
+2. Navigate to the IIS migration scripts directory
+3. Make executable and run:
+
+   ```bash
+   chmod +x start-gui.command
+   ./start-gui.command
+   ```
+
+### Remote GUI Launcher
+
+Execute the GUI on remote servers using the PowerShell remoting script:
+
+```powershell
+.\invoke-remote-gui.ps1 -ComputerName "192.168.1.100" -Method WinRM
+```
+
+**Features:**
+
+- Multiple connection methods: WinRM, RDP, Local
+- Automatic prerequisite checking
+- Credential management support
+- What-if mode for safe testing
+- Background job execution option
+
+**Parameters:**
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `-ComputerName` | Yes | Target server name or IP address |
+| `-Username` | No | Username for remote connection (optional) |
+| `-Method` | No | Connection method: WinRM, RDP, Local (default: WinRM) |
+| `-Wait` | No | Wait for remote process to complete |
+| `-WhatIf` | No | Show what would be executed without running |
+
+**Usage Examples:**
+
+```powershell
+# Basic remote execution
+.\invoke-remote-gui.ps1 -ComputerName "192.168.1.100"
+
+# With credentials
+.\invoke-remote-gui.ps1 -ComputerName "SERVER01" -Username "admin"
+
+# Using RDP method
+.\invoke-remote-gui.ps1 -ComputerName "SERVER02" -Method RDP
+
+# Wait for completion
+.\invoke-remote-gui.ps1 -ComputerName "SERVER03" -Wait
+
+# What-if mode (show commands without executing)
+.\invoke-remote-gui.ps1 -ComputerName "SERVER04" -WhatIf
+
+# Get help
+.\invoke-remote-gui.ps1 -help
+```
+
+**Connection Methods:**
+
+- **WinRM** (Recommended): Executes the GUI directly on the remote server via PowerShell remoting
+- **RDP**: Opens a Remote Desktop connection to the target server
+- **Local**: Executes the GUI on the local machine (for when target is localhost)
+
+**Requirements for Remote Execution:**
+
+- Administrator privileges on both local and remote machines
+- PowerShell remoting enabled (for WinRM method)
+- Microsoft Web Deploy V3 installed on remote server
+- IIS management tools installed on remote server
+- Appropriate firewall rules for WinRM communication
+
+### Remote GUI Option in Main GUI
+
+The main GUI tool includes a built-in remote launcher accessible via the "Remote GUI Launcher" button in the action panel. This provides:
+
+- Integrated remote execution dialog
+- Seamless workflow between local and remote migration
+- Direct access to remote execution parameters
+- Automatic elevation handling
 
 ## 🏗️ Architecture
 
@@ -260,25 +445,49 @@ Optional script to fix IP address configurations after migration.
 
 ### GUI Tool
 
-#### `gui-migrate.ps1`
+#### `web-hosted-gui-migrate.ps1` (Recommended)
 
-A comprehensive GUI application for building and executing msdeploy commands.
+**The primary web-hosted GUI application that can be executed with a single command:**
+
+```powershell
+iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
+```
 
 **Features:**
 
-- Visual command builder with real-time preview
-- Support for all msdeploy providers and verbs
-- Configuration save/load functionality
-- Side-by-side source/destination configuration
-- Comprehensive logging and error handling
+- **Zero Local Dependencies**: Downloads all modules automatically from web
+- **Smart Module Caching**: Optimizes performance with local caching
+- **Complete Feature Set**: All functionality of the local version plus web capabilities
+- **Remote GUI Launcher**: Built-in remote server targeting
+- **Auto-Update**: Always uses the latest version from the web
+- **Enterprise Ready**: Perfect for multi-server deployments
 
-**Key UI Components:**
+#### `gui-migrate.ps1` (Local Version)
+
+**Traditional local file execution:**
+
+```powershell
+.\gui-migrate.ps1
+```
+
+**Key UI Components (Both Versions):**
 
 - **Source Configuration**: Configure source provider, connection, and options
 - **Destination Configuration**: Configure destination provider, connection, and options
 - **Global Settings**: Configure verbs, flags, rules, and link extensions
+- **Action Panel**: Quick access buttons for common operations including remote execution
 - **Command Preview**: Real-time command preview with execute/copy options
 - **Activity Log**: Detailed execution logs with timestamps
+
+**Remote Execution Integration:**
+
+Both GUI versions include a "Remote GUI Launcher" button in the action panel that opens a dialog for launching the GUI on remote servers. This provides:
+
+- Integrated remote server targeting
+- Multiple connection method support (WinRM, RDP)
+- Credential management interface
+- Direct execution with automatic elevation
+- Seamless workflow between local and remote operations
 
 ## 💡 Usage Examples
 
@@ -327,6 +536,68 @@ Import-Module .\GuiStateHelpers.psm1
 
 # Use helper functions for custom scripts
 $config = Get-SideConfiguration -Side "Source" -SideControls $sideControls -ProviderUiStates $providerUiStates
+```
+
+### Remote GUI Execution
+
+**Using the Remote GUI Launcher Script:**
+
+```powershell
+# Execute GUI on remote server via WinRM
+.\invoke-remote-gui.ps1 -ComputerName "192.168.1.100" -Username "admin"
+
+# Execute GUI on remote server via RDP
+.\invoke-remote-gui.ps1 -ComputerName "SERVER02" -Method RDP
+
+# What-if mode to test connections
+.\invoke-remote-gui.ps1 -ComputerName "SERVER03" -WhatIf
+
+# Execute with specific credentials and wait for completion
+.\invoke-remote-gui.ps1 -ComputerName "192.168.1.101" -Username "migrationuser" -Wait
+```
+
+**Using the GUI's Built-in Remote Launcher:**
+
+1. Launch the main GUI: `.\gui-migrate.ps1`
+2. Click the "Remote GUI Launcher" button in the action panel
+3. Enter the target server details:
+   - **Computer Name/IP**: Target server identifier
+   - **Username** (optional): Username for authentication
+   - **Connection Method**: Select WinRM, RDP, or Local
+4. Click "Launch" to execute the GUI on the remote server
+
+The remote GUI will:
+
+- Automatically handle administrator privileges
+- Check for required dependencies on the remote server
+- Execute with the same GUI interface as local execution
+- Log all activities for troubleshooting
+
+### Platform-Specific Launching
+
+**Windows Quick Launch:**
+
+```cmd
+# Double-click or run from command prompt
+start-gui.bat
+```
+
+**macOS Quick Launch:**
+
+```bash
+# Make executable and run
+chmod +x start-gui.command
+./start-gui.command
+```
+
+**Cross-Platform Command Line:**
+
+```powershell
+# Direct PowerShell execution (Windows)
+.\gui-migrate.ps1
+
+# PowerShell Core execution (macOS/Linux with PowerShell)
+pwsh -ExecutionPolicy Bypass -File ./gui-migrate.ps1
 ```
 
 ## ⚙️ Configuration
