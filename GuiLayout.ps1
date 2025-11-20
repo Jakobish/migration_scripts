@@ -394,6 +394,17 @@ $sideControls = @{
     }
 }
 
+$providerInputOptions = @{
+    "appHostConfig" = @{ Mode = "Site" }
+    "contentPath"   = @{ Mode = "Folder" }
+    "dirPath"       = @{ Mode = "Folder" }
+    "filePath"      = @{ Mode = "File" }
+    "package"       = @{
+        Mode   = "File"
+        Filter = "MSDeploy Packages (*.zip)|*.zip|All Files (*.*)|*.*"
+    }
+}
+
 $providerUiStates = @{
     "Source"      = [ordered]@{
         TextBox       = $txtSrcMain

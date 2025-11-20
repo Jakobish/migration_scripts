@@ -66,16 +66,7 @@ $providerMainValueLabel = @{
     "auto"          = "Main Value (optional):"
 }
 
-$providerInputOptions = @{
-    "appHostConfig" = @{ Mode = "Site" }
-    "contentPath"   = @{ Mode = "Folder" }
-    "dirPath"       = @{ Mode = "Folder" }
-    "filePath"      = @{ Mode = "File" }
-    "package"       = @{
-        Mode   = "File"
-        Filter = "MSDeploy Packages (*.zip)|*.zip|All Files (*.*)|*.*"
-    }
-}
+
 
 # Helper to retrieve IIS site names for dropdowns
 function Get-IisSiteNames {
