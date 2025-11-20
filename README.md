@@ -29,13 +29,13 @@
 - [License] (#license)
 - [Support] (#support)
 
-## 🎯 Overview
+## ◯ Overview
 
 This project provides a complete solution for migrating Internet Information Services (IIS) websites and their configurations between Windows servers. It leverages Microsoft Web Deploy (msdeploy) to ensure accurate and efficient migration of websites, application pools, permissions, and settings.
 
 The toolkit includes both command-line scripts and a powerful GUI tool for building and executing complex migration commands, making it suitable for both automated and interactive migration scenarios.
 
-## ✨ Features
+## ◈ Features
 
 ### Core Migration Features
 
@@ -61,7 +61,7 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 - **Network Migration**: Remote server migration support
 - **Flexible Authentication**: Support for various authentication methods
 
-## 🔧 Prerequisites
+## ≋ Prerequisites
 
 ### System Requirements
 
@@ -107,7 +107,7 @@ The toolkit includes both command-line scripts and a powerful GUI tool for build
 
 3. **Run as Administrator**: All scripts require elevated privileges
 
-## ⚡ Quick Start
+## ▸▸▸ Quick Start
 
 ### Basic Website Migration
 
@@ -151,11 +151,11 @@ iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
 
 The GUI provides an intuitive interface for building migration commands with real-time preview and execution capabilities. The web-hosted version automatically downloads all required modules and provides identical functionality.
 
-## ⚡ Easy Execution
+## ▶ Easy Execution
 
 The project includes multiple launcher files and execution methods to suit different deployment scenarios:
 
-### 🌐 **Recommended: Web-Hosted Execution**
+### ◯◯ **Recommended: Web-Hosted Execution**
 
 The easiest and most flexible method for Windows environments:
 
@@ -188,7 +188,7 @@ iex (iwr "https://your-domain.com/web-hosted-gui-migrate.ps1")
 - All required .psm1 modules available at the same URL
 - Proper PowerShell MIME types configured
 
-### 💻 **Platform-Specific Launchers**
+### ⊛ **Platform-Specific Launchers**
 
 ### Windows Batch Launcher
 
@@ -324,7 +324,7 @@ The main GUI tool includes a built-in remote launcher accessible via the "Remote
 - Direct access to remote execution parameters
 - Automatic elevation handling
 
-## 🏗️ Architecture
+## ┌─┐ Architecture
 
 ### Two-Tier Script Structure
 
@@ -355,7 +355,7 @@ graph TD
     D -->|Fail| F[Error - No modules available]
 ```
 
-## 📜 Scripts Reference
+## ═══ Scripts Reference ═══
 
 ### Source Scripts
 
@@ -489,7 +489,7 @@ Both GUI versions include a "Remote GUI Launcher" button in the action panel tha
 - Direct execution with automatic elevation
 - Seamless workflow between local and remote operations
 
-## 💡 Usage Examples
+## ∎ Usage Examples
 
 ### Complete Migration Workflow
 
@@ -600,7 +600,7 @@ chmod +x start-gui.command
 pwsh -ExecutionPolicy Bypass -File ./gui-migrate.ps1
 ```
 
-## ⚙️ Configuration
+## [::] Configuration
 
 ### Environment Variables
 
@@ -624,7 +624,7 @@ Logs are automatically created in:
 
 3. **msdeploy Command Execution**: All msdeploy commands must be wrapped in `cmd.exe /c` for proper execution.
 
-## 🔍 Troubleshooting
+## ◊◊ Troubleshooting
 
 ### Common Issues
 
@@ -687,7 +687,7 @@ Common log patterns to look for:
 - `WHATIF`: Commands that would be executed in dry-run mode
 - `SUCCESS`: Successful operations
 
-## 🤝 Contributing
+## ◈◇ Contributing
 
 We welcome contributions to improve this project! Please follow these guidelines:
 
@@ -708,11 +708,11 @@ We welcome contributions to improve this project! Please follow these guidelines
 
 ### Contribution Areas
 
-- 🐛 **Bug Fixes**: Fix issues in existing functionality
-- ✨ **New Features**: Add new migration capabilities
-- 📚 **Documentation**: Improve documentation and examples
-- 🧪 **Testing**: Add test coverage and validation scripts
-- 🔧 **Refactoring**: Improve code organization and maintainability
+- ■ **Bug Fixes**: Fix issues in existing functionality
+- ◈ **New Features**: Add new migration capabilities
+- ▬ **Documentation**: Improve documentation and examples
+- ◊ **Testing**: Add test coverage and validation scripts
+- [::] **Refactoring**: Improve code organization and maintainability
 
 ### Pull Request Process
 
@@ -733,11 +733,11 @@ When reporting issues, please include:
 - Steps to reproduce the issue
 - Expected vs actual behavior
 
-## 📄 License
+## ▮▮ License
 
 This project is licensed under the MIT License - see the [LICENSE] (LICENSE) file for details.
 
-## 📞 Support
+## ▽▽ Support
 
 ### Getting Help
 
