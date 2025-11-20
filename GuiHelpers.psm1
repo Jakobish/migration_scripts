@@ -72,7 +72,6 @@ function Initialize-SiteComboBox {
         return $true
     }
     else {
-        $combo.Enabled = $false
         $combo.SelectedIndex = -1
         return $false
     }
@@ -92,6 +91,7 @@ function Update-ProviderInputMode {
     $state.TextBox.Visible = $false
     $state.SiteCombo.Visible = $false
     $state.BrowseButton.Visible = $false
+    $state.RefreshButton.Visible = $false
     $state.BrowseMode = $null
     $state.FileFilter = $null
 
@@ -107,15 +107,10 @@ function Update-ProviderInputMode {
 
     switch ($mode) {
         "Site" {
-            if (Initialize-SiteComboBox -State $state) {
-                $state.SiteCombo.Visible = $true
-                $state.SiteCombo.Enabled = $true
-                break
-            }
-            else {
-                Set-TextInputLayout -State $state -ShowBrowseButton $false
-                $state.CurrentMode = "Text"
-            }
+            $state.SiteCombo.Width = 260
+            $state.SiteCombo.Visible = $true
+            $state.SiteCombo.Enabled = $true
+            $state.RefreshButton.Visible = $true
         }
         "File" {
             Set-TextInputLayout -State $state -ShowBrowseButton $true

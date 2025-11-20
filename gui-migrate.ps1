@@ -146,7 +146,7 @@ $headerPanel.Controls.Add($titleLabel)
 
 $infoLabel = New-Object System.Windows.Forms.Label
 $infoLabel.Text = "Build identical source/destination definitions, then execute or copy the msdeploy command.  " +
-"Use the helper buttons to mirror, swap, or refresh either side so you can start from whichever server you prefer."
+"Use the helper buttons to mirror or refresh either side so you can start from whichever server you prefer."
 $infoLabel.Location = "10,35"
 $infoLabel.Size = "780,80"
 $headerPanel.Controls.Add($infoLabel)
@@ -177,7 +177,6 @@ function New-ActionButton {
 
 $btnCopySrcToDst = New-ActionButton -ToolTip $toolTip -Text "Copy Source → Destination" -TooltipText "Mirror all fields from the left side to the right side."
 $btnCopyDstToSrc = New-ActionButton -ToolTip $toolTip -Text "Copy Destination → Source" -TooltipText "Mirror all fields from the right side to the left side."
-$btnSwapSides = New-ActionButton -ToolTip $toolTip -Text "Swap Source & Destination" -TooltipText "Exchange both sides so you can easily reverse a migration."
 $btnRefreshSites = New-ActionButton -ToolTip $toolTip -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
 $btnClearAll = New-ActionButton -ToolTip $toolTip -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
 $btnSaveState = New-ActionButton -ToolTip $toolTip -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
@@ -186,7 +185,6 @@ $btnRemoteGui = New-ActionButton -ToolTip $toolTip -Text "Remote GUI Launcher" -
 
 $actionPanel.Controls.Add($btnCopySrcToDst)
 $actionPanel.Controls.Add($btnCopyDstToSrc)
-$actionPanel.Controls.Add($btnSwapSides)
 $actionPanel.Controls.Add($btnRefreshSites)
 $actionPanel.Controls.Add($btnClearAll)
 $actionPanel.Controls.Add($btnSaveState)
@@ -195,7 +193,6 @@ $actionPanel.Controls.Add($btnRemoteGui)
 
 $btnCopySrcToDst.Add_Click({ Copy-SideConfigurationLocal -From "Source" -To "Destination" })
 $btnCopyDstToSrc.Add_Click({ Copy-SideConfigurationLocal -From "Destination" -To "Source" })
-$btnSwapSides.Add_Click({ Switch-SideConfigurationLocal })
 $btnRefreshSites.Add_Click({ Update-AllSiteCombosLocal; Update-Command })
 $btnClearAll.Add_Click({ Clear-AllInputs })
 $btnSaveState.Add_Click({
@@ -288,12 +285,18 @@ $btnSrcBrowse.Size = "80,23"
 $btnSrcBrowse.Visible = $false
 $srcInputPanel.Controls.Add($btnSrcBrowse)
 
-$cbSrcSites = New-Object System.Windows.Forms.ComboBox
 $cbSrcSites.Location = "0,0"
 $cbSrcSites.Width = 350
-$cbSrcSites.DropDownStyle = "DropDownList"
+$cbSrcSites.DropDownStyle = "DropDown"
 $cbSrcSites.Visible = $false
 $srcInputPanel.Controls.Add($cbSrcSites)
+
+$btnSrcRefresh = New-Object System.Windows.Forms.Button
+$btnSrcRefresh.Text = "Refresh"
+$btnSrcRefresh.Location = "270,0"
+$btnSrcRefresh.Size = "80,23"
+$btnSrcRefresh.Visible = $false
+$srcInputPanel.Controls.Add($btnSrcRefresh)
 
 # Update label when provider changes
 $cbSrcProv.Add_SelectedIndexChanged({
@@ -453,12 +456,18 @@ $btnDstBrowse.Size = "80,23"
 $btnDstBrowse.Visible = $false
 $dstInputPanel.Controls.Add($btnDstBrowse)
 
-$cbDstSites = New-Object System.Windows.Forms.ComboBox
 $cbDstSites.Location = "0,0"
 $cbDstSites.Width = 350
-$cbDstSites.DropDownStyle = "DropDownList"
+$cbDstSites.DropDownStyle = "DropDown"
 $cbDstSites.Visible = $false
 $dstInputPanel.Controls.Add($cbDstSites)
+
+$btnDstRefresh = New-Object System.Windows.Forms.Button
+$btnDstRefresh.Text = "Refresh"
+$btnDstRefresh.Location = "270,0"
+$btnDstRefresh.Size = "80,23"
+$btnDstRefresh.Visible = $false
+$dstInputPanel.Controls.Add($btnDstRefresh)
 
 $cbDstProv.Add_SelectedIndexChanged({
         $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
@@ -535,22 +544,24 @@ $sideControls = @{
 
 $providerUiStates = @{
     "Source"      = [ordered]@{
-        TextBox      = $txtSrcMain
-        SiteCombo    = $cbSrcSites
-        BrowseButton = $btnSrcBrowse
-        ProviderList = $cbSrcProv
-        CurrentMode  = "Text"
-        BrowseMode   = $null
-        FileFilter   = $null
+        TextBox       = $txtSrcMain
+        SiteCombo     = $cbSrcSites
+        BrowseButton  = $btnSrcBrowse
+        RefreshButton = $btnSrcRefresh
+        ProviderList  = $cbSrcProv
+        CurrentMode   = "Text"
+        BrowseMode    = $null
+        FileFilter    = $null
     }
     "Destination" = [ordered]@{
-        TextBox      = $txtDstMain
-        SiteCombo    = $cbDstSites
-        BrowseButton = $btnDstBrowse
-        ProviderList = $cbDstProv
-        CurrentMode  = "Text"
-        BrowseMode   = $null
-        FileFilter   = $null
+        TextBox       = $txtDstMain
+        SiteCombo     = $cbDstSites
+        BrowseButton  = $btnDstBrowse
+        RefreshButton = $btnDstRefresh
+        ProviderList  = $cbDstProv
+        CurrentMode   = "Text"
+        BrowseMode    = $null
+        FileFilter    = $null
     }
 }
 
@@ -599,10 +610,6 @@ function Copy-SideConfigurationLocal {
     Update-Command
 }
 
-function Switch-SideConfigurationLocal {
-    Switch-SideConfiguration -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
-    Update-Command
-}
 
 function Clear-SideConfigurationLocal {
     param([ValidateSet("Source", "Destination")] [string]$Side)
@@ -765,6 +772,13 @@ $btnSrcBrowse.Add_Click({
     })
 $btnDstBrowse.Add_Click({
         Invoke-BrowseDialog -Side "Destination" -ProviderUiStates $providerUiStates
+    })
+
+$btnSrcRefresh.Add_Click({
+        Update-SiteComboLocal -Side "Source"
+    })
+$btnDstRefresh.Add_Click({
+        Update-SiteComboLocal -Side "Destination"
     })
 
 # ===============================================================
