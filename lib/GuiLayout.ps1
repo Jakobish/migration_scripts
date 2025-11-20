@@ -3,6 +3,29 @@
 # UI HELPER FUNCTIONS
 # ===============================================================
 
+# Wrapper functions that use script-scoped variables
+function Copy-SideConfigurationLocal {
+    param(
+        [ValidateSet("Source", "Destination")] [string]$From,
+        [ValidateSet("Source", "Destination")] [string]$To
+    )
+    Copy-SideConfiguration -From $From -To $To -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
+}
+
+function Update-AllSiteCombosLocal {
+    Initialize-AllSiteCombos -ProviderUiStates $providerUiStates
+}
+
+function Save-GuiState {
+    param([string]$Path)
+    Save-GuiStateToFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
+}
+
+function Initialize-GuiState {
+    param([string]$Path)
+    Initialize-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
+}
+
 function New-ToolbarButton {
     param([string]$Text, [string]$TooltipText)
     $btn = New-Object System.Windows.Forms.Button
@@ -79,6 +102,15 @@ function New-SidePanel {
     $btnRefresh.Visible = $false
     $toolTip.SetToolTip($btnRefresh, "Refresh Sites")
     $inputPanel.Controls.Add($btnRefresh)
+    
+    # Wire up event handlers for browse and refresh buttons
+    $btnBrowse.Add_Click({
+            Invoke-BrowseDialog -Side $Side -ProviderUiStates $providerUiStates
+        }.GetNewClosure())
+    
+    $btnRefresh.Add_Click({
+            Initialize-SiteCombo -Side $Side -ProviderUiStates $providerUiStates
+        }.GetNewClosure())
     
     $lblMain = New-Object System.Windows.Forms.Label
     $lblMain.Text = "Value:"
@@ -443,9 +475,34 @@ Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
 Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
 
 return @{
+    # Form
+    Form         = $form
+    # Lists
     Flags        = $lstFlags
     Rules        = $lstRules
     EnableLinks  = $lstELinks
     DisableLinks = $lstDLinks
+    # State objects
     SideControls = $sideControls
+    # UI Controls - Verb
+    VerbCombo    = $cbVerb
+    # UI Controls - Source
+    SrcProvider  = $cbSrcProv
+    SrcMain      = $txtSrcMain
+    SrcSites     = $cbSrcSites
+    SrcIP        = $txtSrcIP
+    SrcUser      = $txtSrcUser
+    SrcPass      = $txtSrcPass
+    SrcAuth      = $cbSrcAuth
+    # UI Controls - Destination
+    DstProvider  = $cbDstProv
+    DstMain      = $txtDstMain
+    DstSites     = $cbDstSites
+    DstIP        = $txtDstIP
+    DstUser      = $txtDstUser
+    DstPass      = $txtDstPass
+    DstAuth      = $cbDstAuth
+    # Command preview and log
+    CmdBox       = $cmdBox
+    LogBox       = $logBox
 }

@@ -3,7 +3,8 @@
 
 ### macOS ###
 # General
-.DS_Store
+DS_Store
+
 .AppleDouble
 .LSOverride
 
@@ -43,3 +44,4 @@ Temporary Items
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,powershell
 .DS_Store
+
