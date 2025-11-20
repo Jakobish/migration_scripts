@@ -441,3 +441,11 @@ $cbDstProv.Add_SelectedIndexChanged({
 # Initialize
 Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
 Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
+
+return @{
+    Flags        = $lstFlags
+    Rules        = $lstRules
+    EnableLinks  = $lstELinks
+    DisableLinks = $lstDLinks
+    SideControls = $sideControls
+}

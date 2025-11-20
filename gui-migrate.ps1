@@ -44,18 +44,22 @@ $logDirectory = Join-Path $scriptRoot "site-logs"
 if (-not (Test-Path $logDirectory)) {
     New-Item -Path $logDirectory -ItemType Directory | Out-Null
 }
-$logFile = Join-Path $logDirectory ("gui-msdeploy-{0}.log" -f (Get-Date -Format "yyyyMMdd-HHmmss"))
 
 # ===============================================================
 # DATA SOURCES
 # ===============================================================
+# Note: Variables below are used via dot-sourcing in GuiLayout.ps1
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $verbs = @("sync", "dump", "delete", "getDependencies", "backup", "restore")
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $sourceProviders = @("appHostConfig", "iisApp", "contentPath", "package", "dirPath", "filePath")
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $destProviders = @("auto", "appHostConfig", "iisApp", "contentPath", "package", "dirPath", "filePath")
 
 # provider main argument labels
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $providerMainValueLabel = @{
     "appHostConfig" = "Site Name:"
     "iisApp"        = "IIS App Path:"
@@ -79,6 +83,7 @@ function Get-IisSiteNames {
 }
 
 # Deployment rules
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $rules = @(
     "enableRule:DoNotDelete",
     "enableRule:DoNotDeleteRule",
@@ -87,12 +92,14 @@ $rules = @(
 )
 
 # Link extensions
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $enableLinks = @(
     "enableLink:AppPoolExtension",
     "enableLink:ContentExtension",
     "enableLink:CertificateExtension"
 )
 
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $disableLinks = @(
     "disableLink:AppPoolExtension",
     "disableLink:ContentExtension",
@@ -100,6 +107,7 @@ $disableLinks = @(
 )
 
 # Global flags
+[Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
 $flags = @(
     "-xml",
     "-allowUntrusted",
@@ -108,7 +116,13 @@ $flags = @(
     "-verbose"
 )
 
-. (Join-Path $PSScriptRoot "GuiLayout.ps1")
+# Load UI layout and capture returned components
+$layoutComponents = . (Join-Path $PSScriptRoot "GuiLayout.ps1")
+$lstFlags = $layoutComponents.Flags
+$lstRules = $layoutComponents.Rules
+$lstELinks = $layoutComponents.EnableLinks
+$lstDLinks = $layoutComponents.DisableLinks
+$sideControls = $layoutComponents.SideControls
 
 # Re-attach event handlers for updates
 foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbSrcAuth, $cbDstAuth, $cbSrcSites, $cbDstSites)) {
