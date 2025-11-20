@@ -10,6 +10,7 @@ function Test-IsAdministrator {
 }
 
 function Get-IisSiteNames {
+    if (-not (Test-Path IIS:\)) { return @() }
     try {
         return (Get-ChildItem IIS:\Sites | Select-Object -ExpandProperty Name)
     }
@@ -174,7 +175,7 @@ function Get-ProviderMainValue {
     }
 }
 
-function Refresh-SiteCombo {
+function Initialize-SiteCombo {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side,
         [hashtable]$ProviderUiStates
@@ -197,8 +198,8 @@ function Refresh-SiteCombo {
     }
 }
 
-function Refresh-AllSiteCombos {
+function Initialize-AllSiteCombos {
     param([hashtable]$ProviderUiStates)
-    Refresh-SiteCombo -Side "Source" -ProviderUiStates $ProviderUiStates
-    Refresh-SiteCombo -Side "Destination" -ProviderUiStates $ProviderUiStates
+    Initialize-SiteCombo -Side "Source" -ProviderUiStates $ProviderUiStates
+    Initialize-SiteCombo -Side "Destination" -ProviderUiStates $ProviderUiStates
 }

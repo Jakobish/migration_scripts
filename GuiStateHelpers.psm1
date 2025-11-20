@@ -132,7 +132,7 @@ function Copy-SideConfiguration {
     Set-SideConfiguration -Side $To -Config $config -SideControls $SideControls -ProviderUiStates $ProviderUiStates -ProviderInputOptions $ProviderInputOptions
 }
 
-function Swap-SideConfiguration {
+function Switch-SideConfiguration {
     param(
         [hashtable]$SideControls,
         [hashtable]$ProviderUiStates,
@@ -266,7 +266,7 @@ function Save-GuiStateToFile {
     }
 }
 
-function Load-GuiStateFromFile {
+function Initialize-GuiStateFromFile {
     param(
         [string]$Path,
         [hashtable]$SideControls,
@@ -288,13 +288,13 @@ function Load-GuiStateFromFile {
         $extension = ([System.IO.Path]::GetExtension($Path)).ToLowerInvariant()
         switch ($extension) {
             ".json" {
-                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
+                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json
             }
             ".xml" {
                 $state = Import-Clixml -Path $Path
             }
             default {
-                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json -Depth 8
+                $state = Get-Content -Path $Path -Raw | ConvertFrom-Json
             }
         }
 

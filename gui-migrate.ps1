@@ -1,6 +1,4 @@
 #Requires -RunAsAdministrator
-Import-Module WebAdministration
-Import-Module (Join-Path $PSScriptRoot "MigrationHelper.psm1")
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
@@ -20,10 +18,24 @@ if (-not (Test-IsAdministrator)) {
     return
 }
 
-$msDeployPath = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+function Get-MsDeployPath {
+    $paths = @(
+        "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe",
+        "C:\Program Files (x86)\IIS\Microsoft Web Deploy V3\msdeploy.exe"
+    )
 
-if (-not (Test-Path $msDeployPath)) {
-    Show-FatalMessage "Microsoft Web Deploy V3 was not found at `"$msDeployPath`". Install it before continuing."
+    foreach ($path in $paths) {
+        if (Test-Path $path) {
+            return $path
+        }
+    }
+    return $null
+}
+
+$msDeployPath = Get-MsDeployPath
+
+if (-not $msDeployPath) {
+    Show-FatalMessage "Microsoft Web Deploy V3 was not found. Install it before continuing."
     return
 }
 
@@ -134,7 +146,7 @@ $headerPanel.Controls.Add($titleLabel)
 
 $infoLabel = New-Object System.Windows.Forms.Label
 $infoLabel.Text = "Build identical source/destination definitions, then execute or copy the msdeploy command.  " +
-    "Use the helper buttons to mirror, swap, or refresh either side so you can start from whichever server you prefer."
+"Use the helper buttons to mirror, swap, or refresh either side so you can start from whichever server you prefer."
 $infoLabel.Location = "10,35"
 $infoLabel.Size = "780,80"
 $headerPanel.Controls.Add($infoLabel)
@@ -198,7 +210,7 @@ $btnLoadState.Add_Click({
         $dialog = New-Object System.Windows.Forms.OpenFileDialog
         $dialog.Filter = "JSON files (*.json)|*.json|XML files (*.xml)|*.xml|All files (*.*)|*.*"
         if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {
-            Load-GuiState -Path $dialog.FileName
+            Initialize-GuiState -Path $dialog.FileName
         }
     })
 
@@ -505,7 +517,7 @@ $toolTip.SetToolTip($cbDstAuth, "authType attribute for the destination provider
 $right.Controls.Add($cbDstAuth)
 
 $sideControls = @{
-    "Source" = @{
+    "Source"      = @{
         Provider = $cbSrcProv
         Auth     = $cbSrcAuth
         IP       = $txtSrcIP
@@ -522,7 +534,7 @@ $sideControls = @{
 }
 
 $providerUiStates = @{
-    "Source" = [ordered]@{
+    "Source"      = [ordered]@{
         TextBox      = $txtSrcMain
         SiteCombo    = $cbSrcSites
         BrowseButton = $btnSrcBrowse
@@ -618,9 +630,9 @@ function Save-GuiState {
     Save-GuiStateToFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
 }
 
-function Load-GuiState {
+function Initialize-GuiState {
     param([string]$Path)
-    Load-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
+    Initialize-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
     Update-Command
 }
 
@@ -793,7 +805,7 @@ $form.Controls.Add($logBox)
 # COMMAND BUILDER
 # ===============================================================
 
-function Get-MsDeployCommandString {
+function Get-MsDeployCommandArguments {
     param(
         [switch]$IncludePassword
     )
@@ -803,7 +815,7 @@ function Get-MsDeployCommandString {
     $dstProv = $cbDstProv.SelectedItem
 
     if (-not $verb -or -not $srcProv -or -not $dstProv) {
-        return ""
+        return @()
     }
 
     $srcValue = Get-ProviderValue -Side "Source"
@@ -858,14 +870,29 @@ function Get-MsDeployCommandString {
     foreach ($l in $lstELinks.CheckedItems) { $extras += "-$l" }
     foreach ($l in $lstDLinks.CheckedItems) { $extras += "-$l" }
 
-    $cmdParts = @(
-        "`"$msDeployPath`"",
+    $cmdArgs = @(
         "-verb:$verb",
         $src,
         $dest
     ) + $extras
 
-    return $cmdParts -join " "
+    return $cmdArgs
+}
+
+function Get-MsDeployCommandString {
+    param(
+        [switch]$IncludePassword
+    )
+
+    $cmdArgs = Get-MsDeployCommandArguments -IncludePassword:$IncludePassword
+    if ($cmdArgs.Count -eq 0) { return "" }
+
+    # Quote arguments that contain spaces if they aren't already quoted (simplified for display)
+    $displayArgs = $cmdArgs | ForEach-Object {
+        if ($_ -match " " -and $_ -notmatch "^`".*`"$") { "`"$_`"" } else { $_ }
+    }
+
+    return "`"$msDeployPath`" " + ($displayArgs -join " ")
 }
 
 function Update-Command {
@@ -895,27 +922,27 @@ function Invoke-MsDeployCommand {
         [switch]$DryRun
     )
 
-    $command = Get-MsDeployCommandString -IncludePassword
+    $arguments = Get-MsDeployCommandArguments -IncludePassword
     $displayCommand = Get-MsDeployCommandString
 
-    if (-not $command) {
+    if ($arguments.Count -eq 0) {
         [System.Windows.Forms.MessageBox]::Show("Build a command before executing.", "MSDeploy PowerShell GUI") | Out-Null
         return
     }
 
-    if ($DryRun -and $command -notmatch "(^|\s)-whatIf($|\s)") {
-        $command += " -whatIf"
+    if ($DryRun -and $arguments -notcontains "-whatIf") {
+        $arguments += "-whatIf"
         if ($displayCommand -notmatch "(^|\s)-whatIf($|\s)") {
             $displayCommand += " -whatIf"
         }
     }
 
     $timestamp = (Get-Date).ToString("u")
-    $header = "[{0}] cmd.exe /c {1}" -f $timestamp, $displayCommand
+    $header = "[{0}] & `"{1}`" {2}" -f $timestamp, $msDeployPath, ($arguments -join " ")
     Add-Content -Path $logFile -Value $header
     Write-LogLines $header
 
-    $output = & cmd.exe /c $command 2>&1 | Tee-Object -FilePath $logFile -Append
+    $output = & $msDeployPath $arguments 2>&1 | Tee-Object -FilePath $logFile -Append
 
     if ($output) {
         Write-LogLines $output
