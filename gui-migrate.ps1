@@ -121,76 +121,84 @@ $flags = @(
 # CREATE MAIN FORM
 # ===============================================================
 
+# ===============================================================
+# CREATE MAIN FORM
+# ===============================================================
+
 $form = New-Object System.Windows.Forms.Form
 $form.Text = "MSDeploy PowerShell GUI"
 $form.Size = New-Object System.Drawing.Size(1200, 900)
-$form.AutoScroll = $true  # Allow smaller screens to reach the bottom controls
-$form.AutoScrollMinSize = New-Object System.Drawing.Size(1200, 1250)
 $form.StartPosition = "CenterScreen"
+$form.Font = "Segoe UI, 9pt"
 
 $toolTip = New-Object System.Windows.Forms.ToolTip
 $toolTip.ShowAlways = $true
 
+# Main Layout
+$mainLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$mainLayout.Dock = "Fill"
+$mainLayout.ColumnCount = 1
+$mainLayout.RowCount = 4
+$mainLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 80))) # Header
+$mainLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 40))) # Toolbar
+$mainLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 60))) # Config & Tabs
+$mainLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 40))) # Preview & Log
+$form.Controls.Add($mainLayout)
+
+# ---------------------------------------------------------------
+# 1. HEADER
+# ---------------------------------------------------------------
 $headerPanel = New-Object System.Windows.Forms.Panel
-$headerPanel.Location = "10,10"
-$headerPanel.Size = "1130,140"
-$headerPanel.BorderStyle = "FixedSingle"
-$form.Controls.Add($headerPanel)
+$headerPanel.Dock = "Fill"
+$headerPanel.BackColor = [System.Drawing.Color]::White
+$headerPanel.Padding = New-Object System.Windows.Forms.Padding(10)
+$mainLayout.Controls.Add($headerPanel, 0, 0)
 
 $titleLabel = New-Object System.Windows.Forms.Label
 $titleLabel.Text = "Dual-Sided MSDeploy Command Builder"
-$titleLabel.Font = "Segoe UI,12,style=Bold"
-$titleLabel.Location = "10,5"
+$titleLabel.Font = "Segoe UI, 14pt, style=Bold"
 $titleLabel.AutoSize = $true
+$titleLabel.Location = New-Object System.Drawing.Point(10, 10)
 $headerPanel.Controls.Add($titleLabel)
 
 $infoLabel = New-Object System.Windows.Forms.Label
-$infoLabel.Text = "Build identical source/destination definitions, then execute or copy the msdeploy command.  " +
-"Use the helper buttons to mirror or refresh either side so you can start from whichever server you prefer."
-$infoLabel.Location = "10,35"
-$infoLabel.Size = "780,80"
+$infoLabel.Text = "Build identical source/destination definitions. Use the toolbar to mirror configurations."
+$infoLabel.Location = New-Object System.Drawing.Point(12, 40)
+$infoLabel.AutoSize = $true
 $headerPanel.Controls.Add($infoLabel)
 
-$actionPanel = New-Object System.Windows.Forms.FlowLayoutPanel
-$actionPanel.Location = "800,5"
-$actionPanel.Size = "320,130"
-$actionPanel.FlowDirection = "TopDown"
-$actionPanel.WrapContents = $false
-$actionPanel.AutoScroll = $true
-$headerPanel.Controls.Add($actionPanel)
+# ---------------------------------------------------------------
+# 2. TOOLBAR
+# ---------------------------------------------------------------
+$toolbarPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$toolbarPanel.Dock = "Fill"
+$toolbarPanel.FlowDirection = "LeftToRight"
+$toolbarPanel.Padding = New-Object System.Windows.Forms.Padding(5)
+$mainLayout.Controls.Add($toolbarPanel, 0, 1)
 
-function New-ActionButton {
-    param(
-        [string]$Text,
-        [string]$TooltipText
-    )
-
+function New-ToolbarButton {
+    param([string]$Text, [string]$TooltipText)
     $btn = New-Object System.Windows.Forms.Button
     $btn.Text = $Text
-    $btn.Width = 300
-    $btn.Height = 25
-    if ($TooltipText) {
-        $toolTip.SetToolTip($btn, $TooltipText)
-    }
+    $btn.AutoSize = $true
+    $btn.Padding = New-Object System.Windows.Forms.Padding(5, 0, 5, 0)
+    $btn.Height = 28
+    $btn.FlatStyle = "System"
+    if ($TooltipText) { $toolTip.SetToolTip($btn, $TooltipText) }
     return $btn
 }
 
-$btnCopySrcToDst = New-ActionButton -ToolTip $toolTip -Text "Copy Source → Destination" -TooltipText "Mirror all fields from the left side to the right side."
-$btnCopyDstToSrc = New-ActionButton -ToolTip $toolTip -Text "Copy Destination → Source" -TooltipText "Mirror all fields from the right side to the left side."
-$btnRefreshSites = New-ActionButton -ToolTip $toolTip -Text "Refresh IIS Site Lists" -TooltipText "Reload local IIS site names for both provider pickers."
-$btnClearAll = New-ActionButton -ToolTip $toolTip -Text "Clear Everything" -TooltipText "Reset all inputs, lists, and preview text."
-$btnSaveState = New-ActionButton -ToolTip $toolTip -Text "Save Layout (JSON/XML)" -TooltipText "Persist the current inputs to a JSON or XML file."
-$btnLoadState = New-ActionButton -ToolTip $toolTip -Text "Load Layout (JSON/XML)" -TooltipText "Load inputs from a previously saved JSON or XML file."
-$btnRemoteGui = New-ActionButton -ToolTip $toolTip -Text "Remote GUI Launcher" -TooltipText "Launch the IIS Migration GUI on a remote server."
+$btnCopySrcToDst = New-ToolbarButton "Copy Src -> Dst" "Mirror Source to Destination"
+$btnCopyDstToSrc = New-ToolbarButton "Copy Dst -> Src" "Mirror Destination to Source"
+$btnRefreshSites = New-ToolbarButton "Refresh Sites" "Reload IIS Sites"
+$btnClearAll = New-ToolbarButton "Clear All" "Reset all inputs"
+$btnSaveState = New-ToolbarButton "Save Layout" "Save to JSON/XML"
+$btnLoadState = New-ToolbarButton "Load Layout" "Load from JSON/XML"
+$btnRemoteGui = New-ToolbarButton "Remote GUI" "Launch on remote server"
 
-$actionPanel.Controls.Add($btnCopySrcToDst)
-$actionPanel.Controls.Add($btnCopyDstToSrc)
-$actionPanel.Controls.Add($btnRefreshSites)
-$actionPanel.Controls.Add($btnClearAll)
-$actionPanel.Controls.Add($btnSaveState)
-$actionPanel.Controls.Add($btnLoadState)
-$actionPanel.Controls.Add($btnRemoteGui)
+$toolbarPanel.Controls.AddRange(@($btnCopySrcToDst, $btnCopyDstToSrc, $btnRefreshSites, $btnClearAll, $btnSaveState, $btnLoadState, $btnRemoteGui))
 
+# Event Handlers for Toolbar
 $btnCopySrcToDst.Add_Click({ Copy-SideConfigurationLocal -From "Source" -To "Destination" })
 $btnCopyDstToSrc.Add_Click({ Copy-SideConfigurationLocal -From "Destination" -To "Source" })
 $btnRefreshSites.Add_Click({ Update-AllSiteCombosLocal; Update-Command })
@@ -210,320 +218,286 @@ $btnLoadState.Add_Click({
             Initialize-GuiState -Path $dialog.FileName
         }
     })
+$btnRemoteGui.Add_Click({ Show-RemoteGuiDialog })
 
-$btnRemoteGui.Add_Click({
-        Show-RemoteGuiDialog
-    })
+# ---------------------------------------------------------------
+# 3. CONFIGURATION AREA (Split + Tabs)
+# ---------------------------------------------------------------
+$configSplit = New-Object System.Windows.Forms.SplitContainer
+$configSplit.Dock = "Fill"
+$configSplit.Orientation = "Vertical"
+$configSplit.SplitterDistance = 800 # Give more space to config
+$mainLayout.Controls.Add($configSplit, 0, 2)
 
-# ===============================================================
-# COMMON VERB CONFIGURATION
-# ===============================================================
+# LEFT SIDE OF SPLIT: Source/Dest Config
+$sidesLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$sidesLayout.Dock = "Fill"
+$sidesLayout.ColumnCount = 2
+$sidesLayout.RowCount = 1
+$sidesLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+$sidesLayout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 50)))
+$configSplit.Panel1.Controls.Add($sidesLayout)
 
-$lblVerb = New-Object System.Windows.Forms.Label
-$lblVerb.Text = "Verb:"
-$lblVerb.Location = "10,900"
-$lblVerb.Font = "Arial,10,style=Bold"
-$form.Controls.Add($lblVerb)
+# Function to create a side panel (Source or Destination)
+function New-SidePanel {
+    param([string]$Title, [string]$Side, [string[]]$Providers)
+    
+    $grp = New-Object System.Windows.Forms.GroupBox
+    $grp.Text = $Title
+    $grp.Dock = "Fill"
+    $grp.Padding = New-Object System.Windows.Forms.Padding(10)
+    
+    $layout = New-Object System.Windows.Forms.TableLayoutPanel
+    $layout.Dock = "Fill"
+    $layout.ColumnCount = 2
+    $layout.RowCount = 7
+    $layout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Absolute, 100)))
+    $layout.ColumnStyles.Add((New-Object System.Windows.Forms.ColumnStyle([System.Windows.Forms.SizeType]::Percent, 100)))
+    
+    # Helper to add row
+    $addRow = {
+        param($labelTxt, $control, $rowIdx)
+        $lbl = New-Object System.Windows.Forms.Label
+        $lbl.Text = $labelTxt
+        $lbl.AutoSize = $true
+        $lbl.Anchor = "Left"
+        $layout.Controls.Add($lbl, 0, $rowIdx)
+        $layout.Controls.Add($control, 1, $rowIdx)
+    }
+    
+    # 1. Provider
+    $cbProv = New-Object System.Windows.Forms.ComboBox
+    $cbProv.Dock = "Fill"
+    $cbProv.DropDownStyle = "DropDownList"
+    $cbProv.Items.AddRange($Providers)
+    $cbProv.SelectedIndex = 0
+    &$addRow "Provider:" $cbProv 0
+    
+    # 2. Main Value (Dynamic Panel)
+    $inputPanel = New-Object System.Windows.Forms.Panel
+    $inputPanel.Dock = "Fill"
+    $inputPanel.Height = 30
+    $inputPanel.Margin = New-Object System.Windows.Forms.Padding(0)
+    
+    $txtMain = New-Object System.Windows.Forms.TextBox
+    $txtMain.Dock = "Fill"
+    $inputPanel.Controls.Add($txtMain)
+    
+    $btnBrowse = New-Object System.Windows.Forms.Button
+    $btnBrowse.Text = "..."
+    $btnBrowse.Width = 30
+    $btnBrowse.Dock = "Right"
+    $btnBrowse.Visible = $false
+    $inputPanel.Controls.Add($btnBrowse)
+    
+    $cbSites = New-Object System.Windows.Forms.ComboBox
+    $cbSites.Dock = "Fill"
+    $cbSites.DropDownStyle = "DropDownList"
+    $cbSites.Visible = $false
+    $inputPanel.Controls.Add($cbSites)
+    
+    $btnRefresh = New-Object System.Windows.Forms.Button
+    $btnRefresh.Text = "R"
+    $btnRefresh.Width = 30
+    $btnRefresh.Dock = "Right"
+    $btnRefresh.Visible = $false
+    $toolTip.SetToolTip($btnRefresh, "Refresh Sites")
+    $inputPanel.Controls.Add($btnRefresh)
+    
+    $lblMain = New-Object System.Windows.Forms.Label
+    $lblMain.Text = "Value:"
+    $lblMain.AutoSize = $true
+    $lblMain.Anchor = "Left"
+    $layout.Controls.Add($lblMain, 0, 1)
+    $layout.Controls.Add($inputPanel, 1, 1)
+    
+    # 3. Computer (IP)
+    $txtIP = New-Object System.Windows.Forms.TextBox
+    $txtIP.Dock = "Fill"
+    &$addRow "Computer:" $txtIP 2
+    
+    # 4. User
+    $txtUser = New-Object System.Windows.Forms.TextBox
+    $txtUser.Dock = "Fill"
+    &$addRow "Username:" $txtUser 3
+    
+    # 5. Pass
+    $txtPass = New-Object System.Windows.Forms.TextBox
+    $txtPass.Dock = "Fill"
+    $txtPass.UseSystemPasswordChar = $true
+    &$addRow "Password:" $txtPass 4
+    
+    # 6. AuthType
+    $cbAuth = New-Object System.Windows.Forms.ComboBox
+    $cbAuth.Dock = "Fill"
+    $cbAuth.DropDownStyle = "DropDownList"
+    $cbAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
+    &$addRow "AuthType:" $cbAuth 5
+    
+    $grp.Controls.Add($layout)
+    
+    return @{
+        Group      = $grp
+        Prov       = $cbProv
+        MainLbl    = $lblMain
+        TxtMain    = $txtMain
+        BtnBrowse  = $btnBrowse
+        CbSites    = $cbSites
+        BtnRefresh = $btnRefresh
+        TxtIP      = $txtIP
+        TxtUser    = $txtUser
+        TxtPass    = $txtPass
+        CbAuth     = $cbAuth
+    }
+}
 
-$cbVerb = New-Object System.Windows.Forms.ComboBox
-$cbVerb.Location = "150,895"
-$cbVerb.Width = 350
-$cbVerb.Items.AddRange($verbs)
-$cbVerb.SelectedIndex = 0
-$form.Controls.Add($cbVerb)
+# Create Source Panel
+$srcControls = New-SidePanel "Source Configuration" "Source" $sourceProviders
+$sidesLayout.Controls.Add($srcControls.Group, 0, 0)
 
-# ===============================================================
-# LEFT PANEL (SOURCE)
-# ===============================================================
+# Create Destination Panel
+$dstControls = New-SidePanel "Destination Configuration" "Destination" $destProviders
+$sidesLayout.Controls.Add($dstControls.Group, 1, 0)
 
-$left = New-Object System.Windows.Forms.Panel
-$left.Location = "10,160"
-$left.Size = "560,720"
-$left.BorderStyle = "FixedSingle"
-$form.Controls.Add($left)
+# Map controls to variables expected by logic
+$cbSrcProv = $srcControls.Prov
+$lblSrcMain = $srcControls.MainLbl
+$txtSrcMain = $srcControls.TxtMain
+$btnSrcBrowse = $srcControls.BtnBrowse
+$cbSrcSites = $srcControls.CbSites
+$btnSrcRefresh = $srcControls.BtnRefresh
+$txtSrcIP = $srcControls.TxtIP
+$txtSrcUser = $srcControls.TxtUser
+$txtSrcPass = $srcControls.TxtPass
+$cbSrcAuth = $srcControls.CbAuth
 
-$lblSource = New-Object System.Windows.Forms.Label
-$lblSource.Text = "SOURCE CONFIGURATION"
-$lblSource.Font = "Arial,10,style=Bold"
-$lblSource.Location = "10,10"
-$left.Controls.Add($lblSource)
+$cbDstProv = $dstControls.Prov
+$lblDstMain = $dstControls.MainLbl
+$txtDstMain = $dstControls.TxtMain
+$btnDstBrowse = $dstControls.BtnBrowse
+$cbDstSites = $dstControls.CbSites
+$btnDstRefresh = $dstControls.BtnRefresh
+$txtDstIP = $dstControls.TxtIP
+$txtDstUser = $dstControls.TxtUser
+$txtDstPass = $dstControls.TxtPass
+$cbDstAuth = $dstControls.CbAuth
 
-# Source provider
-$lblSrcProv = New-Object System.Windows.Forms.Label
-$lblSrcProv.Text = "Source Provider:"
-$lblSrcProv.Location = "10,50"
-$left.Controls.Add($lblSrcProv)
-
-$cbSrcProv = New-Object System.Windows.Forms.ComboBox
-$cbSrcProv.Location = "150,45"
-$cbSrcProv.Width = 350
-$cbSrcProv.Items.AddRange($sourceProviders)
-$cbSrcProv.SelectedIndex = 0
-$toolTip.SetToolTip($cbSrcProv, "Provider for the -source argument.")
-$left.Controls.Add($cbSrcProv)
-
-# Source main value
-$lblSrcMain = New-Object System.Windows.Forms.Label
-$lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
-$lblSrcMain.Location = "10,90"
-$left.Controls.Add($lblSrcMain)
-
-$srcInputPanel = New-Object System.Windows.Forms.Panel
-$srcInputPanel.Location = "150,85"
-$srcInputPanel.Size = "360,30"
-$left.Controls.Add($srcInputPanel)
-
-$txtSrcMain = New-Object System.Windows.Forms.TextBox
-$txtSrcMain.Location = "0,0"
-$txtSrcMain.Width = 350
-$srcInputPanel.Controls.Add($txtSrcMain)
-
-$btnSrcBrowse = New-Object System.Windows.Forms.Button
-$btnSrcBrowse.Text = "Browse..."
-$btnSrcBrowse.Location = "270,0"
-$btnSrcBrowse.Size = "80,23"
-$btnSrcBrowse.Visible = $false
-$srcInputPanel.Controls.Add($btnSrcBrowse)
-
-$cbSrcSites.Location = "0,0"
-$cbSrcSites.Width = 350
-$cbSrcSites.DropDownStyle = "DropDown"
-$cbSrcSites.Visible = $false
-$srcInputPanel.Controls.Add($cbSrcSites)
-
-$btnSrcRefresh = New-Object System.Windows.Forms.Button
-$btnSrcRefresh.Text = "Refresh"
-$btnSrcRefresh.Location = "270,0"
-$btnSrcRefresh.Size = "80,23"
-$btnSrcRefresh.Visible = $false
-$srcInputPanel.Controls.Add($btnSrcRefresh)
-
-# Update label when provider changes
+# Update label logic
 $cbSrcProv.Add_SelectedIndexChanged({
         $lblSrcMain.Text = $providerMainValueLabel[$cbSrcProv.SelectedItem]
         Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
     })
-
-# ===============================================================
-# SOURCE CONNECTION ATTRIBUTES
-# ===============================================================
-
-$lblSrcIP = New-Object System.Windows.Forms.Label
-$lblSrcIP.Text = "computerName (IP only):"
-$lblSrcIP.Location = "10,130"
-$left.Controls.Add($lblSrcIP)
-
-$txtSrcIP = New-Object System.Windows.Forms.TextBox
-$txtSrcIP.Location = "150,125"
-$txtSrcIP.Width = 350
-$toolTip.SetToolTip($txtSrcIP, "computerName for the source (IP preferred).")
-$left.Controls.Add($txtSrcIP)
-
-$lblSrcUser = New-Object System.Windows.Forms.Label
-$lblSrcUser.Text = "userName:"
-$lblSrcUser.Location = "10,170"
-$left.Controls.Add($lblSrcUser)
-
-$txtSrcUser = New-Object System.Windows.Forms.TextBox
-$txtSrcUser.Location = "150,165"
-$txtSrcUser.Width = 350
-$toolTip.SetToolTip($txtSrcUser, "userName attribute for the source provider.")
-$left.Controls.Add($txtSrcUser)
-
-$lblSrcPass = New-Object System.Windows.Forms.Label
-$lblSrcPass.Text = "password:"
-$lblSrcPass.Location = "10,210"
-$left.Controls.Add($lblSrcPass)
-
-$txtSrcPass = New-Object System.Windows.Forms.TextBox
-$txtSrcPass.Location = "150,205"
-$txtSrcPass.Width = 350
-$txtSrcPass.UseSystemPasswordChar = $true
-$toolTip.SetToolTip($txtSrcPass, "password attribute for the source provider.")
-$left.Controls.Add($txtSrcPass)
-
-$lblSrcAuth = New-Object System.Windows.Forms.Label
-$lblSrcAuth.Text = "authType:"
-$lblSrcAuth.Location = "10,250"
-$left.Controls.Add($lblSrcAuth)
-
-$cbSrcAuth = New-Object System.Windows.Forms.ComboBox
-$cbSrcAuth.Location = "150,245"
-$cbSrcAuth.Width = 350
-$cbSrcAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
-$cbSrcAuth.SelectedIndex = -1
-$toolTip.SetToolTip($cbSrcAuth, "authType attribute for the source provider.")
-$left.Controls.Add($cbSrcAuth)
-
-# Flags
-$lblFlags = New-Object System.Windows.Forms.Label
-$lblFlags.Text = "Global Flags:"
-$lblFlags.Location = "10,300"
-$left.Controls.Add($lblFlags)
-
-$lstFlags = New-Object System.Windows.Forms.CheckedListBox
-$lstFlags.Location = "10,325"
-$lstFlags.Size = "250,150"
-$lstFlags.Items.AddRange($flags)
-$left.Controls.Add($lstFlags)
-
-# Rules
-$lblRules = New-Object System.Windows.Forms.Label
-$lblRules.Text = "Rules:"
-$lblRules.Location = "300,300"
-$left.Controls.Add($lblRules)
-
-$lstRules = New-Object System.Windows.Forms.CheckedListBox
-$lstRules.Location = "300,325"
-$lstRules.Size = "250,150"
-$lstRules.Items.AddRange($rules)
-$left.Controls.Add($lstRules)
-
-# Enable Links
-$lblELinks = New-Object System.Windows.Forms.Label
-$lblELinks.Text = "Enable Links:"
-$lblELinks.Location = "10,490"
-$left.Controls.Add($lblELinks)
-
-$lstELinks = New-Object System.Windows.Forms.CheckedListBox
-$lstELinks.Location = "10,515"
-$lstELinks.Size = "250,150"
-$lstELinks.Items.AddRange($enableLinks)
-$left.Controls.Add($lstELinks)
-
-# Disable Links
-$lblDLinks = New-Object System.Windows.Forms.Label
-$lblDLinks.Text = "Disable Links:"
-$lblDLinks.Location = "300,490"
-$left.Controls.Add($lblDLinks)
-
-$lstDLinks = New-Object System.Windows.Forms.CheckedListBox
-$lstDLinks.Location = "300,515"
-$lstDLinks.Size = "250,150"
-$lstDLinks.Items.AddRange($disableLinks)
-$left.Controls.Add($lstDLinks)
-
-# ===============================================================
-# RIGHT PANEL (DESTINATION)
-# ===============================================================
-
-$right = New-Object System.Windows.Forms.Panel
-$right.Location = "580,160"
-$right.Size = "560,720"
-$right.BorderStyle = "FixedSingle"
-$form.Controls.Add($right)
-
-$lblDest = New-Object System.Windows.Forms.Label
-$lblDest.Text = "DESTINATION CONFIGURATION"
-$lblDest.Font = "Arial,10,style=Bold"
-$lblDest.Location = "10,10"
-$right.Controls.Add($lblDest)
-
-# Destination provider
-$lblDstProv = New-Object System.Windows.Forms.Label
-$lblDstProv.Text = "Destination Provider:"
-$lblDstProv.Location = "10,50"
-$right.Controls.Add($lblDstProv)
-
-$cbDstProv = New-Object System.Windows.Forms.ComboBox
-$cbDstProv.Location = "175,45"
-$cbDstProv.Width = 350
-$cbDstProv.Items.AddRange($destProviders)
-$cbDstProv.SelectedIndex = 0
-$toolTip.SetToolTip($cbDstProv, "Provider for the -dest argument.")
-$right.Controls.Add($cbDstProv)
-
-# Destination main value
-$lblDstMain = New-Object System.Windows.Forms.Label
-$lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
-$lblDstMain.Location = "10,90"
-$right.Controls.Add($lblDstMain)
-
-$dstInputPanel = New-Object System.Windows.Forms.Panel
-$dstInputPanel.Location = "175,85"
-$dstInputPanel.Size = "360,30"
-$right.Controls.Add($dstInputPanel)
-
-$txtDstMain = New-Object System.Windows.Forms.TextBox
-$txtDstMain.Location = "0,0"
-$txtDstMain.Width = 350
-$dstInputPanel.Controls.Add($txtDstMain)
-
-$btnDstBrowse = New-Object System.Windows.Forms.Button
-$btnDstBrowse.Text = "Browse..."
-$btnDstBrowse.Location = "270,0"
-$btnDstBrowse.Size = "80,23"
-$btnDstBrowse.Visible = $false
-$dstInputPanel.Controls.Add($btnDstBrowse)
-
-$cbDstSites.Location = "0,0"
-$cbDstSites.Width = 350
-$cbDstSites.DropDownStyle = "DropDown"
-$cbDstSites.Visible = $false
-$dstInputPanel.Controls.Add($cbDstSites)
-
-$btnDstRefresh = New-Object System.Windows.Forms.Button
-$btnDstRefresh.Text = "Refresh"
-$btnDstRefresh.Location = "270,0"
-$btnDstRefresh.Size = "80,23"
-$btnDstRefresh.Visible = $false
-$dstInputPanel.Controls.Add($btnDstRefresh)
-
 $cbDstProv.Add_SelectedIndexChanged({
         $lblDstMain.Text = $providerMainValueLabel[$cbDstProv.SelectedItem]
         Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
     })
 
-# ===============================================================
-# DESTINATION CONNECTION ATTRIBUTES
-# ===============================================================
+# RIGHT SIDE OF SPLIT: Settings Tabs
+$tabControl = New-Object System.Windows.Forms.TabControl
+$tabControl.Dock = "Fill"
+$configSplit.Panel2.Controls.Add($tabControl)
 
-$lblDstIP = New-Object System.Windows.Forms.Label
-$lblDstIP.Text = "computerName (IP only):"
-$lblDstIP.Location = "10,130"
-$right.Controls.Add($lblDstIP)
+function New-CheckListTab {
+    param($Title, $Items)
+    $page = New-Object System.Windows.Forms.TabPage
+    $page.Text = $Title
+    $list = New-Object System.Windows.Forms.CheckedListBox
+    $list.Dock = "Fill"
+    $list.CheckOnClick = $true
+    $list.Items.AddRange($Items)
+    $page.Controls.Add($list)
+    $tabControl.TabPages.Add($page)
+    return $list
+}
 
-$txtDstIP = New-Object System.Windows.Forms.TextBox
-$txtDstIP.Location = "175,125"
-$txtDstIP.Width = 350
-$toolTip.SetToolTip($txtDstIP, "computerName for the destination (IP preferred).")
-$right.Controls.Add($txtDstIP)
+$lstFlags = New-CheckListTab "Global Flags" $flags
+$lstRules = New-CheckListTab "Rules" $rules
+$lstELinks = New-CheckListTab "Enable Links" $enableLinks
+$lstDLinks = New-CheckListTab "Disable Links" $disableLinks
 
-$lblDstUser = New-Object System.Windows.Forms.Label
-$lblDstUser.Text = "userName:"
-$lblDstUser.Location = "10,170"
-$right.Controls.Add($lblDstUser)
+# ---------------------------------------------------------------
+# 4. FOOTER (Preview & Log)
+# ---------------------------------------------------------------
+$footerLayout = New-Object System.Windows.Forms.TableLayoutPanel
+$footerLayout.Dock = "Fill"
+$footerLayout.ColumnCount = 1
+$footerLayout.RowCount = 4
+$footerLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 30))) # Verb
+$footerLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 40))) # Preview
+$footerLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Percent, 60))) # Log
+$footerLayout.RowStyles.Add((New-Object System.Windows.Forms.RowStyle([System.Windows.Forms.SizeType]::Absolute, 40))) # Run Buttons
+$mainLayout.Controls.Add($footerLayout, 0, 3)
 
-$txtDstUser = New-Object System.Windows.Forms.TextBox
-$txtDstUser.Location = "175,165"
-$txtDstUser.Width = 350
-$toolTip.SetToolTip($txtDstUser, "userName attribute for the destination provider.")
-$right.Controls.Add($txtDstUser)
+# Verb Selection
+$verbPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$verbPanel.Dock = "Fill"
+$verbPanel.FlowDirection = "LeftToRight"
+$lblVerb = New-Object System.Windows.Forms.Label
+$lblVerb.Text = "Action (Verb):"
+$lblVerb.AutoSize = $true
+$lblVerb.Anchor = "Left"
+$cbVerb = New-Object System.Windows.Forms.ComboBox
+$cbVerb.DropDownStyle = "DropDownList"
+$cbVerb.Items.AddRange($verbs)
+$cbVerb.SelectedIndex = 0
+$verbPanel.Controls.Add($lblVerb)
+$verbPanel.Controls.Add($cbVerb)
+$footerLayout.Controls.Add($verbPanel, 0, 0)
 
-$lblDstPass = New-Object System.Windows.Forms.Label
-$lblDstPass.Text = "password:"
-$lblDstPass.Location = "10,210"
-$right.Controls.Add($lblDstPass)
+# Preview
+$grpPreview = New-Object System.Windows.Forms.GroupBox
+$grpPreview.Text = "Command Preview"
+$grpPreview.Dock = "Fill"
+$cmdBox = New-Object System.Windows.Forms.TextBox
+$cmdBox.Multiline = $true
+$cmdBox.ScrollBars = "Vertical"
+$cmdBox.Dock = "Fill"
+$cmdBox.Font = "Consolas, 10pt"
+$cmdBox.ReadOnly = $true
+$grpPreview.Controls.Add($cmdBox)
+$footerLayout.Controls.Add($grpPreview, 0, 1)
 
-$txtDstPass = New-Object System.Windows.Forms.TextBox
-$txtDstPass.Location = "175,205"
-$txtDstPass.Width = 350
-$txtDstPass.UseSystemPasswordChar = $true
-$toolTip.SetToolTip($txtDstPass, "password attribute for the destination provider.")
-$right.Controls.Add($txtDstPass)
+# Log
+$grpLog = New-Object System.Windows.Forms.GroupBox
+$grpLog.Text = "Activity Log"
+$grpLog.Dock = "Fill"
+$logBox = New-Object System.Windows.Forms.TextBox
+$logBox.Multiline = $true
+$logBox.ScrollBars = "Vertical"
+$logBox.Dock = "Fill"
+$logBox.Font = "Consolas, 9pt"
+$logBox.ReadOnly = $true
+$grpLog.Controls.Add($logBox)
+$footerLayout.Controls.Add($grpLog, 0, 2)
 
-$lblDstAuth = New-Object System.Windows.Forms.Label
-$lblDstAuth.Text = "authType:"
-$lblDstAuth.Location = "10,250"
-$right.Controls.Add($lblDstAuth)
+# Run Buttons
+$runPanel = New-Object System.Windows.Forms.FlowLayoutPanel
+$runPanel.Dock = "Fill"
+$runPanel.FlowDirection = "RightToLeft"
+$btnExecute = New-Object System.Windows.Forms.Button
+$btnExecute.Text = "EXECUTE"
+$btnExecute.Width = 100
+$btnExecute.BackColor = [System.Drawing.Color]::LightGreen
+$btnDry = New-Object System.Windows.Forms.Button
+$btnDry.Text = "Dry Run"
+$btnCopy = New-Object System.Windows.Forms.Button
+$btnCopy.Text = "Copy Command"
 
-$cbDstAuth = New-Object System.Windows.Forms.ComboBox
-$cbDstAuth.Location = "175,245"
-$cbDstAuth.Width = 350
-$cbDstAuth.Items.AddRange(@("Basic", "NTLM", "Negotiate", "None"))
-$cbDstAuth.SelectedIndex = -1
-$toolTip.SetToolTip($cbDstAuth, "authType attribute for the destination provider.")
-$right.Controls.Add($cbDstAuth)
+$runPanel.Controls.AddRange(@($btnExecute, $btnDry, $btnCopy))
+$footerLayout.Controls.Add($runPanel, 0, 3)
+
+# Event Handlers for Run Buttons
+$btnExecute.Add_Click({ Invoke-MsDeployCommand })
+$btnDry.Add_Click({ Invoke-MsDeployCommand -DryRun })
+$btnCopy.Add_Click({
+        $command = $cmdBox.Text.Trim()
+        if ($command) { [System.Windows.Forms.Clipboard]::SetText($command) }
+    })
+
+# ---------------------------------------------------------------
+# RE-BIND LOGIC VARIABLES
+# ---------------------------------------------------------------
+# The logic functions rely on these hashtables, so we must update them with the new controls
 
 $sideControls = @{
     "Source"      = @{
@@ -565,475 +539,24 @@ $providerUiStates = @{
     }
 }
 
-# Thin wrappers to keep the main script readable
-function Set-ProviderMode {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side,
-        [string]$Provider
-    )
-    Update-ProviderInputMode -Side $Side -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -Provider $Provider
-}
-
-function Get-ProviderValue {
-    param([ValidateSet("Source", "Destination")] [string]$Side)
-    return Get-ProviderMainValue -Side $Side -ProviderUiStates $providerUiStates
-}
-
-function Update-SiteComboLocal {
-    param([ValidateSet("Source", "Destination")] [string]$Side)
-    Update-SiteCombo -Side $Side -ProviderUiStates $providerUiStates
-}
-
-function Update-AllSiteCombosLocal {
-    Update-AllSiteCombos -ProviderUiStates $providerUiStates
-}
-
-function Get-SideConfigurationLocal {
-    param([ValidateSet("Source", "Destination")] [string]$Side)
-    return Get-SideConfiguration -Side $Side -SideControls $sideControls -ProviderUiStates $providerUiStates
-}
-
-function Set-SideConfigurationLocal {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$Side,
-        [hashtable]$Config
-    )
-    Set-SideConfiguration -Side $Side -Config $Config -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
-}
-
-function Copy-SideConfigurationLocal {
-    param(
-        [ValidateSet("Source", "Destination")] [string]$From,
-        [ValidateSet("Source", "Destination")] [string]$To
-    )
-    Copy-SideConfiguration -From $From -To $To -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
-    Update-Command
-}
-
-
-function Clear-SideConfigurationLocal {
-    param([ValidateSet("Source", "Destination")] [string]$Side)
-    Clear-SideConfiguration -Side $Side -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions
-}
-
-function Clear-AllInputs {
-    foreach ($side in @("Source", "Destination")) {
-        Clear-SideConfigurationLocal -Side $side
-    }
-
-    $cbVerb.SelectedIndex = 0
-    Reset-CheckedListBox $lstFlags
-    Reset-CheckedListBox $lstRules
-    Reset-CheckedListBox $lstELinks
-    Reset-CheckedListBox $lstDLinks
-
-    $logBox.Clear()
-    $cmdBox.Clear()
-    Update-Command
-}
-
-function Save-GuiState {
-    param([string]$Path)
-    Save-GuiStateToFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
-}
-
-function Initialize-GuiState {
-    param([string]$Path)
-    Initialize-GuiStateFromFile -Path $Path -SideControls $sideControls -ProviderUiStates $providerUiStates -ProviderInputOptions $providerInputOptions -VerbCombo $cbVerb -FlagsList $lstFlags -RulesList $lstRules -EnableLinksList $lstELinks -DisableLinksList $lstDLinks
-    Update-Command
-}
-
-function Show-RemoteGuiDialog {
-    $dialog = New-Object System.Windows.Forms.Form
-    $dialog.Text = "Remote GUI Launcher"
-    $dialog.Size = New-Object System.Drawing.Size(500, 300)
-    $dialog.StartPosition = "CenterScreen"
-    $dialog.FormBorderStyle = "FixedDialog"
-    $dialog.MaximizeBox = $false
-    $dialog.MinimizeBox = $false
-
-    # Title
-    $titleLabel = New-Object System.Windows.Forms.Label
-    $titleLabel.Text = "Launch IIS Migration GUI on Remote Server"
-    $titleLabel.Font = "Segoe UI,12,style=Bold"
-    $titleLabel.Location = "10,10"
-    $titleLabel.Size = "400,25"
-    $dialog.Controls.Add($titleLabel)
-
-    # Computer name
-    $lblComputer = New-Object System.Windows.Forms.Label
-    $lblComputer.Text = "Computer Name/IP:"
-    $lblComputer.Location = "10,50"
-    $lblComputer.Size = "120,20"
-    $dialog.Controls.Add($lblComputer)
-
-    $txtComputer = New-Object System.Windows.Forms.TextBox
-    $txtComputer.Location = "10,70"
-    $txtComputer.Size = "460,20"
-    $dialog.Controls.Add($txtComputer)
-
-    # Username
-    $lblUsername = New-Object System.Windows.Forms.Label
-    $lblUsername.Text = "Username (optional):"
-    $lblUsername.Location = "10,100"
-    $lblUsername.Size = "120,20"
-    $dialog.Controls.Add($lblUsername)
-
-    $txtUsername = New-Object System.Windows.Forms.TextBox
-    $txtUsername.Location = "10,120"
-    $txtUsername.Size = "460,20"
-    $dialog.Controls.Add($txtUsername)
-
-    # Method selection
-    $lblMethod = New-Object System.Windows.Forms.Label
-    $lblMethod.Text = "Connection Method:"
-    $lblMethod.Location = "10,150"
-    $lblMethod.Size = "120,20"
-    $dialog.Controls.Add($lblMethod)
-
-    $cbMethod = New-Object System.Windows.Forms.ComboBox
-    $cbMethod.Location = "10,170"
-    $cbMethod.Size = "200,20"
-    $cbMethod.Items.AddRange(@("WinRM", "RDP", "Local"))
-    $cbMethod.SelectedIndex = 0
-    $dialog.Controls.Add($cbMethod)
-
-    # Help text
-    $helpLabel = New-Object System.Windows.Forms.Label
-    $helpLabel.Text = "WinRM: Execute GUI directly on remote server`nRDP: Launch Remote Desktop connection`nLocal: Launch GUI on this computer"
-    $helpLabel.Location = "220,150"
-    $helpLabel.Size = "250,60"
-    $helpLabel.Font = "Segoe UI,8"
-    $dialog.Controls.Add($helpLabel)
-
-    # Buttons
-    $btnOK = New-Object System.Windows.Forms.Button
-    $btnOK.Text = "Launch"
-    $btnOK.Location = "300,230"
-    $btnOK.Size = "80,30"
-    $btnOK.DialogResult = "OK"
-    $dialog.Controls.Add($btnOK)
-
-    $btnCancel = New-Object System.Windows.Forms.Button
-    $btnCancel.Text = "Cancel"
-    $btnCancel.Location = "390,230"
-    $btnCancel.Size = "80,30"
-    $btnCancel.DialogResult = "Cancel"
-    $dialog.Controls.Add($btnCancel)
-
-    $dialog.AcceptButton = $btnOK
-    $dialog.CancelButton = $btnCancel
-
-    $result = $dialog.ShowDialog()
-    
-    if ($result -eq "OK") {
-        $computerName = $txtComputer.Text.Trim()
-        $username = $txtUsername.Text.Trim()
-        $method = $cbMethod.SelectedItem
-        
-        if (-not $computerName) {
-            [System.Windows.Forms.MessageBox]::Show("Please enter a computer name or IP address.", "Remote GUI Launcher") | Out-Null
-            return
-        }
-
-        # Build and execute the remote GUI command
-        $scriptPath = Join-Path $PSScriptRoot "invoke-remote-gui.ps1"
-        if (-not (Test-Path $scriptPath)) {
-            [System.Windows.Forms.MessageBox]::Show("invoke-remote-gui.ps1 not found. Please ensure it's in the same directory as this GUI.", "Remote GUI Launcher") | Out-Null
-            return
-        }
-
-        # Launch in a new PowerShell window
-        $arguments = @("-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"", "-ComputerName", "`"$computerName`"")
-        
-        if ($username) {
-            $arguments += "-Username"
-            $arguments += "`"$username`""
-        }
-        
-        $arguments += "-Method"
-        $arguments += "`"$method`""
-
-        try {
-            Start-Process powershell -ArgumentList $arguments -Verb RunAs
-            Write-LogLines @(
-                "Remote GUI launcher started for: $computerName",
-                "Method: $method $(if($username){ "with username: $username" }else{ "using current credentials" })"
-            )
-        }
-        catch {
-            [System.Windows.Forms.MessageBox]::Show("Failed to launch remote GUI: $($_.Exception.Message)", "Remote GUI Launcher") | Out-Null
-        }
-    }
-}
-
-$btnSrcBrowse.Add_Click({
-        Invoke-BrowseDialog -Side "Source" -ProviderUiStates $providerUiStates
-    })
-$btnDstBrowse.Add_Click({
-        Invoke-BrowseDialog -Side "Destination" -ProviderUiStates $providerUiStates
-    })
-
-$btnSrcRefresh.Add_Click({
-        Update-SiteComboLocal -Side "Source"
-    })
-$btnDstRefresh.Add_Click({
-        Update-SiteComboLocal -Side "Destination"
-    })
-
-# ===============================================================
-# COMMAND PREVIEW
-# ===============================================================
-
-$lblPreview = New-Object System.Windows.Forms.Label
-$lblPreview.Text = "Command Preview"
-$lblPreview.Location = "10,930"
-$lblPreview.Font = "Arial,9,style=Bold"
-$form.Controls.Add($lblPreview)
-
-$cmdBox = New-Object System.Windows.Forms.TextBox
-$cmdBox.Multiline = $true
-$cmdBox.ScrollBars = "Vertical"
-$cmdBox.Location = "10,950"
-$cmdBox.Size = "1130,80"
-$cmdBox.Font = "Consolas,10"
-$cmdBox.ReadOnly = $true
-$form.Controls.Add($cmdBox)
-
-$lblLog = New-Object System.Windows.Forms.Label
-$lblLog.Text = "Activity Log"
-$lblLog.Location = "10,1040"
-$lblLog.Font = "Arial,9,style=Bold"
-$form.Controls.Add($lblLog)
-
-$logBox = New-Object System.Windows.Forms.TextBox
-$logBox.Multiline = $true
-$logBox.ScrollBars = "Vertical"
-$logBox.Location = "10,1050"
-$logBox.Size = "1130,120"
-$logBox.Font = "Consolas,9"
-$logBox.ReadOnly = $true
-$form.Controls.Add($logBox)
-
-# ===============================================================
-# COMMAND BUILDER
-# ===============================================================
-
-function Get-MsDeployCommandArguments {
-    param(
-        [switch]$IncludePassword
-    )
-
-    $verb = $cbVerb.SelectedItem
-    $srcProv = $cbSrcProv.SelectedItem
-    $dstProv = $cbDstProv.SelectedItem
-
-    if (-not $verb -or -not $srcProv -or -not $dstProv) {
-        return @()
-    }
-
-    $srcValue = Get-ProviderValue -Side "Source"
-    $src = if ($srcValue) { "-source:$srcProv=`"$srcValue`"" } else { "-source:$srcProv" }
-
-    $dstValue = Get-ProviderValue -Side "Destination"
-    $dest = if ($dstValue) { "-dest:$dstProv=`"$dstValue`"" } else { "-dest:$dstProv" }
-
-    # Source attributes
-    $srcAttributes = @()
-    if ($txtSrcIP.Text.Trim()) {
-        $srcAttributes += "computerName=`"$($txtSrcIP.Text.Trim())`""
-    }
-    if ($txtSrcUser.Text.Trim()) {
-        $srcAttributes += "userName=`"$($txtSrcUser.Text.Trim())`""
-    }
-    if ($txtSrcPass.Text.Trim()) {
-        $passwordValue = if ($IncludePassword) { $txtSrcPass.Text.Trim() } else { "<hidden>" }
-        $srcAttributes += "password=`"$passwordValue`""
-    }
-    if ($cbSrcAuth.SelectedItem) {
-        $srcAttributes += "authType=`"$($cbSrcAuth.SelectedItem)`""
-    }
-
-    if ($srcAttributes.Count -gt 0) {
-        $src += "," + ($srcAttributes -join ",")
-    }
-
-    # Destination attributes
-    $destAttributes = @()
-    if ($txtDstIP.Text.Trim()) {
-        $destAttributes += "computerName=`"$($txtDstIP.Text.Trim())`""
-    }
-    if ($txtDstUser.Text.Trim()) {
-        $destAttributes += "userName=`"$($txtDstUser.Text.Trim())`""
-    }
-    if ($txtDstPass.Text.Trim()) {
-        $passwordValue = if ($IncludePassword) { $txtDstPass.Text.Trim() } else { "<hidden>" }
-        $destAttributes += "password=`"$passwordValue`""
-    }
-    if ($cbDstAuth.SelectedItem) {
-        $destAttributes += "authType=`"$($cbDstAuth.SelectedItem)`""
-    }
-
-    if ($destAttributes.Count -gt 0) {
-        $dest += "," + ($destAttributes -join ",")
-    }
-
-    $extras = @()
-    foreach ($f in $lstFlags.CheckedItems) { $extras += $f }
-    foreach ($r in $lstRules.CheckedItems) { $extras += "-$r" }
-    foreach ($l in $lstELinks.CheckedItems) { $extras += "-$l" }
-    foreach ($l in $lstDLinks.CheckedItems) { $extras += "-$l" }
-
-    $cmdArgs = @(
-        "-verb:$verb",
-        $src,
-        $dest
-    ) + $extras
-
-    return $cmdArgs
-}
-
-function Get-MsDeployCommandString {
-    param(
-        [switch]$IncludePassword
-    )
-
-    $cmdArgs = Get-MsDeployCommandArguments -IncludePassword:$IncludePassword
-    if ($cmdArgs.Count -eq 0) { return "" }
-
-    # Quote arguments that contain spaces if they aren't already quoted (simplified for display)
-    $displayArgs = $cmdArgs | ForEach-Object {
-        if ($_ -match " " -and $_ -notmatch "^`".*`"$") { "`"$_`"" } else { $_ }
-    }
-
-    return "`"$msDeployPath`" " + ($displayArgs -join " ")
-}
-
-function Update-Command {
-    $command = Get-MsDeployCommandString
-    if ([string]::IsNullOrWhiteSpace($command)) {
-        $cmdBox.Text = ""
-        return
-    }
-    $cmdBox.Text = "cmd.exe /c $command"
-}
-
-function Write-LogLines {
-    param(
-        [string[]]$Lines
-    )
-
-    if (-not $Lines) {
-        return
-    }
-
-    $logText = ($Lines -join [Environment]::NewLine) + [Environment]::NewLine
-    $logBox.AppendText($logText)
-}
-
-function Invoke-MsDeployCommand {
-    param(
-        [switch]$DryRun
-    )
-
-    $arguments = Get-MsDeployCommandArguments -IncludePassword
-    $displayCommand = Get-MsDeployCommandString
-
-    if ($arguments.Count -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("Build a command before executing.", "MSDeploy PowerShell GUI") | Out-Null
-        return
-    }
-
-    if ($DryRun -and $arguments -notcontains "-whatIf") {
-        $arguments += "-whatIf"
-        if ($displayCommand -notmatch "(^|\s)-whatIf($|\s)") {
-            $displayCommand += " -whatIf"
-        }
-    }
-
-    $timestamp = (Get-Date).ToString("u")
-    $header = "[{0}] & `"{1}`" {2}" -f $timestamp, $msDeployPath, ($arguments -join " ")
-    Add-Content -Path $logFile -Value $header
-    Write-LogLines $header
-
-    $output = & $msDeployPath $arguments 2>&1 | Tee-Object -FilePath $logFile -Append
-
-    if ($output) {
-        Write-LogLines $output
-    }
-    else {
-        Write-LogLines @("[{0}] Command completed with no output." -f $timestamp)
-    }
-
-    if ($LASTEXITCODE -eq 0) {
-        [System.Windows.Forms.MessageBox]::Show("msdeploy command completed successfully.`nLog: $logFile", "MSDeploy PowerShell GUI") | Out-Null
-    }
-    else {
-        [System.Windows.Forms.MessageBox]::Show("msdeploy command failed (exit code $LASTEXITCODE). Review $logFile for details.", "MSDeploy PowerShell GUI") | Out-Null
-    }
-}
-
-# Update preview on change
+# Re-attach event handlers for updates
 foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbSrcAuth, $cbDstAuth, $cbSrcSites, $cbDstSites)) {
-    # ComboBox controls support TextChanged and SelectedIndexChanged
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
     $ctl.Add_SelectedIndexChanged({ Update-Command }) 2>$null
 }
 
 foreach ($ctl in @($txtSrcMain, $txtDstMain, $txtSrcIP, $txtSrcUser, $txtSrcPass, $txtDstIP, $txtDstUser, $txtDstPass)) {
-    # TextBox controls only support TextChanged
     $ctl.Add_TextChanged({ Update-Command }) 2>$null
 }
 
 foreach ($ctl in @($lstFlags, $lstRules, $lstELinks, $lstDLinks)) {
-    # CheckedListBox controls support TextChanged and ItemCheck
-    $ctl.Add_TextChanged({ Update-Command }) 2>$null
+    $ctl.Add_SelectedIndexChanged({ Update-Command }) 2>$null
     $ctl.Add_ItemCheck({ Start-Sleep -Milliseconds 100; Update-Command }) 2>$null
 }
 
+# Initialize
 Set-ProviderMode -Side "Source" -Provider $cbSrcProv.SelectedItem
 Set-ProviderMode -Side "Destination" -Provider $cbDstProv.SelectedItem
-
-# ===============================================================
-# RUN BUTTONS
-# ===============================================================
-
-$btnExecute = New-Object System.Windows.Forms.Button
-$btnExecute.Text = "Execute"
-$btnExecute.Location = "10,1185"
-$btnExecute.Size = "120,30"
-$btnExecute.Add_Click({
-        Invoke-MsDeployCommand
-    })
-$toolTip.SetToolTip($btnExecute, "Execute the currently previewed msdeploy command.")
-$form.Controls.Add($btnExecute)
-
-$btnDry = New-Object System.Windows.Forms.Button
-$btnDry.Text = "Dry Run (-whatIf)"
-$btnDry.Location = "150,1185"
-$btnDry.Size = "150,30"
-$btnDry.Add_Click({
-        Invoke-MsDeployCommand -DryRun
-    })
-$toolTip.SetToolTip($btnDry, "Append -whatIf to validate without making changes.")
-$form.Controls.Add($btnDry)
-
-$btnCopy = New-Object System.Windows.Forms.Button
-$btnCopy.Text = "Copy"
-$btnCopy.Location = "320,1185"
-$btnCopy.Size = "120,30"
-$btnCopy.Add_Click({
-        $command = $cmdBox.Text.Trim()
-        if ($command) {
-            [System.Windows.Forms.Clipboard]::SetText($command)
-        }
-    })
-$toolTip.SetToolTip($btnCopy, "Copy the cmd.exe invocation for use elsewhere.")
-$form.Controls.Add($btnCopy)
-
-# ===============================================================
-# SHOW FORM
-# ===============================================================
 
 $form.Add_Shown({ Update-Command })
 $form.ShowDialog()
