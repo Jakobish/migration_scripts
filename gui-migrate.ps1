@@ -2,8 +2,8 @@
 
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
-Import-Module (Join-Path $PSScriptRoot "GuiHelpers.psm1")
-Import-Module (Join-Path $PSScriptRoot "GuiStateHelpers.psm1")
+Import-Module (Join-Path $PSScriptRoot "lib\GuiHelpers.psm1")
+Import-Module (Join-Path $PSScriptRoot "lib\GuiStateHelpers.psm1")
 
 try {
     Import-Module WebAdministration -ErrorAction Stop
@@ -117,12 +117,11 @@ $flags = @(
 )
 
 # Load UI layout and capture returned components
-$layoutComponents = . (Join-Path $PSScriptRoot "GuiLayout.ps1")
+$layoutComponents = . (Join-Path $PSScriptRoot "lib\GuiLayout.ps1")
 $lstFlags = $layoutComponents.Flags
 $lstRules = $layoutComponents.Rules
 $lstELinks = $layoutComponents.EnableLinks
 $lstDLinks = $layoutComponents.DisableLinks
-$sideControls = $layoutComponents.SideControls
 
 # Re-attach event handlers for updates
 foreach ($ctl in @($cbVerb, $cbSrcProv, $cbDstProv, $cbSrcAuth, $cbDstAuth, $cbSrcSites, $cbDstSites)) {
