@@ -2,73 +2,89 @@
 
 This file provides comprehensive guidance for all agents working with the IIS migration scripts repository.
 
+## Project Context
+
+This repository contains a suite of PowerShell scripts designed to facilitate the migration of IIS websites from a **Source** server to a **Destination** server.
+- **Goal**: Automate the export of sites, application pools, and content from one server and import them onto another, preserving configurations and permissions.
+- **Key Script**: `gui-migrate.ps1` is the main entry point, providing a GUI to drive the migration process.
+
+## Coding Standards
+
+To maintain code quality and prevent common PowerShell pitfalls:
+
+- **No Aliases**: Always use full cmdlet names (e.g., `Where-Object` instead of `?`, `ForEach-Object` instead of `%`). This improves readability and prevents ambiguity.
+- **PascalCase**: Use PascalCase for all variable names (e.g., `$SiteName`, `$DestinationServer`) and function names.
+- **Syntax Checking**: Always run `.\check-syntax.ps1` after making changes to ensure no syntax errors were introduced.
+- **Error Handling**: Use `Try/Catch` blocks for critical operations, especially those involving file I/O or remote connections.
+
 ## Critical Execution Requirements
 
-- **msdeploy commands**: MUST be wrapped in `cmd.exe /c` (direct execution fails)
-- **Microsoft Web Deploy V3**: Required at `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`
-- **Administrator privileges**: All scripts require elevated permissions
-- **PowerShell directives**: All scripts require `#Requires -RunAsAdministrator`
+- **msdeploy commands**: MUST be wrapped in `cmd.exe /c`. Direct execution in PowerShell often fails due to quoting issues.
+- **Microsoft Web Deploy V3**: Required at `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`.
+- **Administrator privileges**: All scripts require elevated permissions to access IIS configuration and system files.
+- **PowerShell directives**: All scripts require `#Requires -RunAsAdministrator`.
 
 ## Architecture Overview
 
-### Two-Tier Script Structure
+### Main Entry Point
+- **gui-migrate.ps1**: The primary GUI tool that orchestrates the migration. It loads helper modules and manages the user interface.
 
-- **source-scripts/**: Scripts for exporting/migrating FROM current server
-- **destination-scripts/**: Scripts for setup ON target server
+### Helper Modules
+- **GuiHelpers.psm1**: Contains UI-related helper functions (e.g., creating buttons, labels, text boxes).
+- **GuiStateHelpers.psm1**: Manages the state of the GUI, including loading/saving configurations and handling event logic.
+
+### Two-Tier Script Structure
+- **source-scripts/**: Scripts executed on the **Source** server (e.g., to export sites, dump configuration).
+- **destination-scripts/**: Scripts executed on the **Destination** server (e.g., to create users, import sites).
 
 ### Module Fallback Architecture
-
-- Primary: `IISAdministration` module
-- Fallback: `WebAdministration` with edition checking
-- IISAdministration detection requires explicit command availability checks
-- Uses `Add-WindowsFeature` (not `Install-WindowsFeature`)
+- Primary: `IISAdministration` module (preferred).
+- Fallback: `WebAdministration` with edition checking.
+- IISAdministration detection requires explicit command availability checks.
+- Uses `Add-WindowsFeature` (not `Install-WindowsFeature`) for compatibility.
 
 ## Implementation Patterns & Known Issues
 
 ### Variable Naming Inconsistencies
-
-- **$name vs $sitename**: Both variables used for same site - architectural debt that must be maintained
-- **Line 86 in migrate-websites.ps1**: Uses wrong variable - requires careful handling
-- **$DestinatoinServerIP vs $DestinationServerIP**: Parameter typo became part of public API - changing breaks compatibility
+- **$name vs $sitename**: Both variables used for same site - architectural debt that must be maintained.
+- **Line 86 in migrate-websites.ps1**: Uses wrong variable - requires careful handling.
+- **$DestinatoinServerIP vs $DestinationServerIP**: Parameter typo became part of public API - changing breaks compatibility.
 
 ### Application Pool Handling
-
-- Application pool objects may return as arrays - always use `$pool[0]` extraction
-- ACL identity format: `$appPoolIdentity = "IIS APPPOOL\$pool"`
+- Application pool objects may return as arrays - always use `$pool[0]` extraction.
+- ACL identity format: `$appPoolIdentity = "IIS APPPOOL\$pool"`.
 
 ### Logging & Error Handling
-
-- **Dual logging**: `Tee-Object` for console + file simultaneously
-- **Error suppression**: `2>$null` for non-critical operations can hide failures
-- **msdeploy failures**: Don't throw PowerShell exceptions - check `$LASTEXITCODE`
-- **Log directories**: Auto-created - check `.\site-logs` if missing
+- **Dual logging**: `Tee-Object` for console + file simultaneously.
+- **Error suppression**: `2>$null` for non-critical operations can hide failures.
+- **msdeploy failures**: Don't throw PowerShell exceptions - check `$LASTEXITCODE`.
+- **Log directories**: Auto-created - check `.\site-logs` if missing.
 
 ## Required Dependencies
 
-- **Password generation**: `System.Web.Security.Membership` with `GeneratePassword(20, 4)`
-- **Windows user creation**: `net.exe user` commands (not PowerShell cmdlets)
-- **ACL management**: msdeploy with specific `-enableLink` flags
+- **Password generation**: `System.Web.Security.Membership` with `GeneratePassword(20, 4)`.
+- **Windows user creation**: `net.exe user` commands (not PowerShell cmdlets).
+- **ACL management**: msdeploy with specific `-enableLink` flags.
 
 ## ACL Management Requirements
 
 ### Required msdeploy Flags
-
 ```cmd
 -enableLink:AppPoolExtension,ContentExtension,CertificateExtension
 ```
 
 ### Key Notes
-
-- ACL sync failures are non-fatal - script continues but warnings suppressed
-- ACL management is centralized through msdeploy with specific flag combinations
+- ACL sync failures are non-fatal - script continues but warnings suppressed.
+- ACL management is centralized through msdeploy with specific flag combinations.
 
 ### Command Execution
+- **WhatIf mode**: Only logs intended commands - actual execution still pending.
+- **Batch processing**: Supports dry runs without actual migration.
+- **Commented-out blocks**: ACL sync, retry logic suggest incomplete architectural decisions.
 
-- **WhatIf mode**: Only logs intended commands - actual execution still pending
-- **Batch processing**: Supports dry runs without actual migration
-- **Commented-out blocks**: ACL sync, retry logic suggest incomplete architectural decisions
+## Approved Verbs
 
-### verbs
+The following list of verbs is provided for reference to ensure compliance with PowerShell's approved verb list (to avoid `AvoidUnapprovedVerbs` warnings).
 
 Verb        AliasPrefix Group          Description
 ----        ----------- -----          -----------
