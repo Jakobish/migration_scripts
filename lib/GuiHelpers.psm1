@@ -19,6 +19,58 @@ function Get-IisSiteNames {
     }
 }
 
+function Get-RemoteIisSiteNames {
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password', Justification = 'Password is already handled as plain text in GUI TextBox controls')]
+    param(
+        [string]$ComputerName,
+        [string]$UserName,
+        [string]$Password,
+        [string]$AuthType = "NTLM"
+    )
+    
+    # If no computer name specified, get local sites
+    if (-not $ComputerName -or $ComputerName.Trim() -eq "") {
+        return Get-IisSiteNames
+    }
+    
+    try {
+        # Build credential if username provided
+        $credential = $null
+        if ($UserName -and $Password) {
+            $securePass = ConvertTo-SecureString $Password -AsPlainText -Force
+            $credential = New-Object System.Management.Automation.PSCredential($UserName, $securePass)
+        }
+        
+        # Use PowerShell remoting to get sites from remote server
+        $scriptBlock = {
+            try {
+                Import-Module WebAdministration -ErrorAction Stop
+                return (Get-ChildItem IIS:\Sites | Select-Object -ExpandProperty Name)
+            }
+            catch {
+                return @()
+            }
+        }
+        
+        $params = @{
+            ComputerName = $ComputerName
+            ScriptBlock  = $scriptBlock
+        }
+        
+        if ($credential) {
+            $params.Credential = $credential
+        }
+        
+        $sites = Invoke-Command @params -ErrorAction Stop
+        return $sites
+    }
+    catch {
+        # If remoting fails, return empty array
+        Write-Warning "Failed to retrieve sites from $ComputerName : $_"
+        return @()
+    }
+}
+
 function New-ActionButton {
     param(
         [System.Windows.Forms.ToolTip]$ToolTip,
@@ -58,13 +110,23 @@ function Set-TextInputLayout {
 }
 
 function Initialize-SiteComboBox {
-    param([hashtable]$State)
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSAvoidUsingPlainTextForPassword', 'Password', Justification = 'Password is already handled as plain text in GUI TextBox controls')]
+    param(
+        [hashtable]$State,
+        [string]$ComputerName = "",
+        [string]$UserName = "",
+        [string]$Password = "",
+        [string]$AuthType = "NTLM"
+    )
 
     if (-not $State) { return }
 
     $combo = $State.SiteCombo
     $combo.Items.Clear()
-    $sites = Get-IisSiteNames
+    
+    # Get sites from remote server if connection details provided, otherwise local
+    $sites = Get-RemoteIisSiteNames -ComputerName $ComputerName -UserName $UserName -Password $Password -AuthType $AuthType
+    
     if ($sites -and $sites.Count -gt 0) {
         $combo.Items.AddRange($sites)
         $combo.Enabled = $true
@@ -173,14 +235,22 @@ function Get-ProviderMainValue {
 function Initialize-SiteCombo {
     param(
         [ValidateSet("Source", "Destination")] [string]$Side,
-        [hashtable]$ProviderUiStates
+        [hashtable]$ProviderUiStates,
+        [hashtable]$SideControls
     )
 
     $state = $ProviderUiStates[$Side]
     if (-not $state -or $state.CurrentMode -ne "Site") { return }
+    
+    # Get connection details from the controls
+    $controls = $SideControls[$Side]
+    $computerName = if ($controls.IP) { $controls.IP.Text } else { "" }
+    $userName = if ($controls.User) { $controls.User.Text } else { "" }
+    $password = if ($controls.Pass) { $controls.Pass.Text } else { "" }
+    $authType = if ($controls.Auth) { $controls.Auth.Text } else { "NTLM" }
 
     $currentValue = $state.SiteCombo.Text
-    if (Initialize-SiteComboBox -State $state) {
+    if (Initialize-SiteComboBox -State $state -ComputerName $computerName -UserName $userName -Password $password -AuthType $authType) {
         if ($currentValue) {
             $index = $state.SiteCombo.Items.IndexOf($currentValue)
             if ($index -ge 0) {
@@ -194,7 +264,10 @@ function Initialize-SiteCombo {
 }
 
 function Initialize-AllSiteCombos {
-    param([hashtable]$ProviderUiStates)
-    Initialize-SiteCombo -Side "Source" -ProviderUiStates $ProviderUiStates
-    Initialize-SiteCombo -Side "Destination" -ProviderUiStates $ProviderUiStates
+    param(
+        [hashtable]$ProviderUiStates,
+        [hashtable]$SideControls
+    )
+    Initialize-SiteCombo -Side "Source" -ProviderUiStates $ProviderUiStates -SideControls $SideControls
+    Initialize-SiteCombo -Side "Destination" -ProviderUiStates $ProviderUiStates -SideControls $SideControls
 }

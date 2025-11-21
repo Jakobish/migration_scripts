@@ -13,7 +13,7 @@ function Copy-SideConfigurationLocal {
 }
 
 function Update-AllSiteCombosLocal {
-    Initialize-AllSiteCombos -ProviderUiStates $providerUiStates
+    Initialize-AllSiteCombos -ProviderUiStates $providerUiStates -SideControls $sideControls
 }
 
 function Save-GuiState {
@@ -109,7 +109,7 @@ function New-SidePanel {
         }.GetNewClosure())
     
     $btnRefresh.Add_Click({
-            Initialize-SiteCombo -Side $Side -ProviderUiStates $providerUiStates
+            Initialize-SiteCombo -Side $Side -ProviderUiStates $providerUiStates -SideControls $sideControls
         }.GetNewClosure())
     
     $lblMain = New-Object System.Windows.Forms.Label
