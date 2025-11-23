@@ -41,6 +41,9 @@ function Get-RemoteIisSiteNames {
             $credential = New-Object System.Management.Automation.PSCredential($UserName, $securePass)
         }
         
+        # Create session options to handle non-domain scenarios
+        $sessionOption = New-PSSessionOption -SkipCACheck -SkipCNCheck -SkipRevocationCheck
+        
         # Use PowerShell remoting to get sites from remote server
         $scriptBlock = {
             try {
@@ -53,8 +56,9 @@ function Get-RemoteIisSiteNames {
         }
         
         $params = @{
-            ComputerName = $ComputerName
-            ScriptBlock  = $scriptBlock
+            ComputerName  = $ComputerName
+            ScriptBlock   = $scriptBlock
+            SessionOption = $sessionOption
         }
         
         if ($credential) {
@@ -65,8 +69,25 @@ function Get-RemoteIisSiteNames {
         return $sites
     }
     catch {
-        # If remoting fails, return empty array
-        Write-Warning "Failed to retrieve sites from $ComputerName : $_"
+        $errorMsg = $_.Exception.Message
+        
+        # Provide helpful error messages based on common issues
+        if ($errorMsg -match "TrustedHosts") {
+            Write-Warning "Failed to connect to $ComputerName - TrustedHosts configuration required.`n" +
+            "Run this command as Administrator on the local machine:`n" +
+            "Set-Item WSMan:\localhost\Client\TrustedHosts -Value '$ComputerName' -Force"
+        }
+        elseif ($errorMsg -match "Access is denied") {
+            Write-Warning "Failed to connect to $ComputerName - Access denied. Check credentials and permissions."
+        }
+        elseif ($errorMsg -match "WinRM") {
+            Write-Warning "Failed to connect to $ComputerName - WinRM issue.`n" +
+            "Ensure WinRM is enabled on the remote server: Enable-PSRemoting -Force"
+        }
+        else {
+            Write-Warning "Failed to retrieve sites from $ComputerName : $errorMsg"
+        }
+        
         return @()
     }
 }
