@@ -73,16 +73,16 @@ function Get-RemoteIisSiteNames {
         
         # Provide helpful error messages based on common issues
         if ($errorMsg -match "TrustedHosts") {
-            Write-Warning "Failed to connect to $ComputerName - TrustedHosts configuration required.`n" +
-            "Run this command as Administrator on the local machine:`n" +
-            "Set-Item WSMan:\localhost\Client\TrustedHosts -Value '$ComputerName' -Force"
+            Write-Warning ("Failed to connect to $ComputerName - TrustedHosts configuration required.`n" +
+                "Run this command as Administrator on the local machine:`n" +
+                "Set-Item WSMan:\localhost\Client\TrustedHosts -Value '$ComputerName' -Force")
         }
         elseif ($errorMsg -match "Access is denied") {
             Write-Warning "Failed to connect to $ComputerName - Access denied. Check credentials and permissions."
         }
         elseif ($errorMsg -match "WinRM") {
-            Write-Warning "Failed to connect to $ComputerName - WinRM issue.`n" +
-            "Ensure WinRM is enabled on the remote server: Enable-PSRemoting -Force"
+            Write-Warning ("Failed to connect to $ComputerName - WinRM issue.`n" +
+                "Ensure WinRM is enabled on the remote server: Enable-PSRemoting -Force")
         }
         else {
             Write-Warning "Failed to retrieve sites from $ComputerName : $errorMsg"
