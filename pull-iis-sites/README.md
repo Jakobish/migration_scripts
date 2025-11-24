@@ -1,37 +1,83 @@
-# Enhanced IIS Sites Pull Script Walkthrough
+# IIS Sites Pull Tool - Documentation
 
-I have updated the `pull-iis-sites.ps1` script to include powerful new features for better visibility and reliability.
+## Overview
+Simplified PowerShell script for pulling IIS site configurations from a remote server using MSDeploy. Designed for one-time migration projects.
 
-## New Features
+## Features
+- **Configuration File**: All settings in JSON (including credentials)
+- **Parallel Execution**: Process multiple sites simultaneously
+- **Automatic Retries**: Retry failed pulls up to 3 times
+- **Detailed Logging**: Per-domain log files with timestamps
 
-### 1. New Window Mode (`-NewWindow`)
-You can now spawn a separate PowerShell console window for each domain being processed. This allows you to see the real-time output of `msdeploy.exe` for multiple sites simultaneously.
+## Setup
 
-**Usage:**
-```powershell
-.\pull-iis-sites.ps1 -Computer "10.0.0.50" -NewWindow
+### 1. Configuration File
+Create or edit `pull-iis-sites.config.json`:
+
+```json
+{
+  "Computer": "10.0.0.50",
+  "Username": "domain\\admin",
+  "Password": "YourPasswordHere",
+  "DomainListFile": "./domains.txt",
+  "LogDir": "./logs",
+  "MaxParallel": 8,
+  "MSDeployPath": "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe",
+  "MaxRetries": 3,
+  "RetryDelaySeconds": 5,
+  "WhatIf": false
+}
 ```
 
-### 2. Automatic Retry Logic
-The script now automatically retries failed MSDeploy operations up to 3 times with a 5-second delay between attempts. This helps handle transient network issues or temporary locks.
+### 2. Domain List File
+Create `domains.txt` with one domain per line:
 
-### 3. Enhanced Logging
-- **Timestamps**: Every log entry now includes a timestamp.
-- **Detailed Errors**: Full error messages and stack traces are captured.
-- **Sanitization**: Passwords are automatically masked in the log files.
+```
+site1.example.com
+site2.example.com
+# This is a comment
+site3.example.com
+```
 
-### 4. Worker Mode (Internal)
-The script has been refactored to use a "Controller/Worker" architecture.
-- **Controller**: Manages the queue and spawns processes.
-- **Worker**: Handles a single domain, retries, and logging.
+## Usage
 
-## How to Verify
-1. **Dry Run**: Run with `-EnableWhatIf` to see what would happen without making changes.
-   ```powershell
-   .\pull-iis-sites.ps1 -Computer "10.0.0.50" -EnableWhatIf -NewWindow
-   ```
-2. **Check Logs**: Inspect the `.\logs` directory. You should see a log file for each domain (e.g., `domain.com.log`) with detailed execution history.
+### Basic
+```powershell
+.\pull-iis-sites.ps1
+```
+
+### Custom Config File
+```powershell
+.\pull-iis-sites.ps1 -ConfigFile .\my-config.json
+```
+
+### Dry Run (Preview)
+Set `"WhatIf": true` in config file to preview without making changes.
+
+## Configuration Options
+
+| Setting | Required | Default | Description |
+|---------|----------|---------|-------------|
+| `Computer` | Yes | - | Remote server hostname/IP |
+| `Username` | Yes | - | Authentication username |
+| `Password` | Yes | - | Authentication password |
+| `DomainListFile` | Yes | - | Path to domain list file |
+| `LogDir` | No | `./logs` | Directory for log files |
+| `MaxParallel` | No | `8` | Max concurrent operations |
+| `MSDeployPath` | No | `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe` | Path to msdeploy.exe |
+| `MaxRetries` | No | `3` | Retry attempts per domain |
+| `RetryDelaySeconds` | No | `5` | Delay between retries |
+| `WhatIf` | No | `false` | Preview mode |
+
+## Output
+- Console shows real-time progress for each domain
+- Logs saved to `LogDir` (one file per domain: `domain.log`)
+- Summary report at completion
 
 ## Requirements
 - PowerShell 7+
-- MSDeploy (Web Deploy) installed on both local and remote machines.
+- MSDeploy (Web Deploy) installed
+- Network access to remote IIS server
+
+## Security Note
+⚠️ The config file contains plaintext credentials. For one-time migrations this is acceptable, but secure the file appropriately (e.g., set file permissions, delete after migration).
