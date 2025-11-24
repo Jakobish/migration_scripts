@@ -139,7 +139,7 @@ function Write-ColorOutput {
     Write-Host "$prefix $Message" -ForegroundColor $color
 }
 
-function Process-DomainItem {
+function Invoke-DomainPull {
     param(
         [string]$Domain,
         [string]$Computer,
@@ -246,7 +246,7 @@ if ($WorkerMode) {
         Write-Host "Log Directory: $LogDir" -ForegroundColor Gray
         Write-Host "----------------------------------------"
 
-        $result = Process-DomainItem `
+        $result = Invoke-DomainPull `
             -Domain $WorkerDomain `
             -Computer $Computer `
             -Username $Username `
@@ -324,10 +324,10 @@ try {
             Write-ColorOutput "Spawning new windows for each domain..." -Type Info
             
             $Domains | ForEach-Object -Parallel {
-                param($Computer, $LogDir, $MSDeployPath, $EnableWhatIf, $TempCredFile, $MyInvocation)
+                param($Computer, $LogDir, $MSDeployPath, $EnableWhatIf, $TempCredFile, $ScriptInfo)
                 
                 $domain = $_
-                $scriptPath = $MyInvocation.MyCommand.Definition
+                $scriptPath = $ScriptInfo.MyCommand.Definition
                 
                 $workerArgs = @(
                     "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "`"$scriptPath`"",
@@ -357,20 +357,20 @@ try {
         else {
             # Inline Parallel Execution
             # We need to pass the function definition to the parallel block
-            $FunctionDef = Get-Content "function:\Process-DomainItem"
+            $FunctionDef = Get-Content "function:\Invoke-DomainPull"
             
             $results = $Domains | ForEach-Object -Parallel {
                 param($Computer, $LogDir, $MSDeployPath, $EnableWhatIf, $TempCredFile, $FunctionDef)
                 
                 # Re-define function in parallel runspace
-                ${function:Process-DomainItem} = [scriptblock]::Create($FunctionDef)
+                ${function:Invoke-DomainPull} = [scriptblock]::Create($FunctionDef)
                 
                 # Load creds
                 $Cred = Import-Clixml -Path $TempCredFile
                 $Username = $Cred.UserName
                 $Password = $Cred.GetNetworkCredential().Password
 
-                return Process-DomainItem `
+                return Invoke-DomainPull `
                     -Domain $_ `
                     -Computer $Computer `
                     -Username $Username `
