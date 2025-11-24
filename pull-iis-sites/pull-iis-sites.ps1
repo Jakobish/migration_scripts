@@ -88,6 +88,9 @@ try {
         }
     }
     
+
+
+    
     # Apply defaults
     $Computer = $config.Computer
     $Username = $config.Username
@@ -150,15 +153,17 @@ try {
     # Execute parallel processing
     $startTime = Get-Date
     $results = $Domains | ForEach-Object -Parallel {
-        $domain = $_
-        $LogFile = Join-Path $using:LogDir "$domain.log"
+        param($Computer, $Username, $Password, $MSDeployPath, $LogDir, $WhatIf)
+        
+        $domain = $PSItem
+        $LogFile = Join-Path $LogDir "$domain.log"
 
         # Build MSDeploy command
-        $whatIfParam = if ($using:WhatIf) { "-whatif" } else { "" }
+        $whatIfParam = if ($WhatIf) { "-whatif" } else { "" }
 
         $msdeployArgs = @(
             "-verb:sync"
-            "-source:appHostConfig=`"$domain`",computerName=`"$using:Computer`",userName=`"$using:Username`",password=`"$using:Password`",authType=`"NTLM`""
+            "-source:appHostConfig=`"$domain`",computerName=`"$Computer`",userName=`"$Username`",password=`"$Password`",authType=`"NTLM`""
             "-dest:appHostConfig=`"$domain`""
             "-allowUntrusted"
             "-enableLink:AppPoolExtension"
@@ -171,7 +176,7 @@ try {
 ========================================
 Domain: $domain
 Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-Command: \"$using:MSDeployPath\" $($sanitizedArgs -join ' ')
+Command: \"$MSDeployPath\" $($sanitizedArgs -join ' ')
 ========================================
 
 "@
@@ -183,7 +188,7 @@ Command: \"$using:MSDeployPath\" $($sanitizedArgs -join ' ')
             $timestamp = Get-Date -Format "HH:mm:ss"
             "[$timestamp] Executing..." | Out-File -FilePath $LogFile -Append -Encoding UTF8
 
-            $output = & $using:MSDeployPath $msdeployArgs 2>&1
+            $output = & $MSDeployPath $msdeployArgs 2>&1
             $output | Out-File -FilePath $LogFile -Append -Encoding UTF8
 
             if ($LASTEXITCODE -eq 0) {
@@ -208,7 +213,7 @@ Command: \"$using:MSDeployPath\" $($sanitizedArgs -join ' ')
             Write-Host "[✗] $domain - Failed" -ForegroundColor Red
             return @{ Domain = $domain; Success = $false; Message = "Failed. See log: $LogFile" }
         }
-    } -ThrottleLimit $using:MaxParallel
+    } -ThrottleLimit $MaxParallel
 
     $endTime = Get-Date
     $duration = $endTime - $startTime

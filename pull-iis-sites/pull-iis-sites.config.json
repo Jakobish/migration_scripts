@@ -1,11 +1,11 @@
 {
-    "Computer": "10.0.0.50",
-    "Username": "domain\\admin",
-    "Password": "YourPasswordHere",
-    "DomainListFile": "./domains.txt",
+    "Computer": "81.218.80.233",
+    "Username": "admin",
+    "Password": "pass111",
+    "DomainListFile": "./domains233.txt",
     "LogDir": "./logs",
-    "MaxParallel": 8,
+    "MaxParallel": 2,
     "MSDeployPath": "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe",
-    "MaxWebsites": 10,
+    "MaxWebsites": 2,
     "WhatIf": false
 }
