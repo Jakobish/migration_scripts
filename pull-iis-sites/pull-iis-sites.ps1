@@ -150,25 +150,20 @@ try {
     # Execute parallel processing
     $startTime = Get-Date
     $results = $Domains | ForEach-Object -Parallel {
-        param($Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf)
-        
         $domain = $_
-        $LogFile = Join-Path $LogDir "$domain.log"
-        
+        $LogFile = Join-Path $using:LogDir "$domain.log"
+
         # Build MSDeploy command
-        $whatIfParam = if ($WhatIf) { "-whatif" } else { "" }
-        
+        $whatIfParam = if ($using:WhatIf) { "-whatif" } else { "" }
+
         $msdeployArgs = @(
             "-verb:sync"
-            "-source:appHostConfig=`"$domain`",computerName=`"$Computer`",userName=`"$Username`",password=`"$Password`",authType=`"NTLM`""
+            "-source:appHostConfig=`"$domain`",computerName=`"$using:Computer`",userName=`"$using:Username`",password=`"$using:Password`",authType=`"NTLM`""
             "-dest:appHostConfig=`"$domain`""
             "-allowUntrusted"
             "-enableLink:AppPoolExtension"
         )
-        
-        if ($whatIfParam) {
-            $msdeployArgs += $whatIfParam
-        }
+        if ($whatIfParam) { $msdeployArgs += $whatIfParam }
 
         # Log header
         $sanitizedArgs = $msdeployArgs -replace "password=`"[^`"]+`"", "password=`"***`""
@@ -176,7 +171,7 @@ try {
 ========================================
 Domain: $domain
 Timestamp: $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
-Command: "$MSDeployPath" $($sanitizedArgs -join ' ')
+Command: \"$using:MSDeployPath\" $($sanitizedArgs -join ' ')
 ========================================
 
 "@
@@ -187,11 +182,10 @@ Command: "$MSDeployPath" $($sanitizedArgs -join ' ')
         try {
             $timestamp = Get-Date -Format "HH:mm:ss"
             "[$timestamp] Executing..." | Out-File -FilePath $LogFile -Append -Encoding UTF8
-            
-            # Execute MSDeploy
-            $output = & $MSDeployPath $msdeployArgs 2>&1
+
+            $output = & $using:MSDeployPath $msdeployArgs 2>&1
             $output | Out-File -FilePath $LogFile -Append -Encoding UTF8
-            
+
             if ($LASTEXITCODE -eq 0) {
                 "[$timestamp] Exit Code: 0 (Success)" | Out-File -FilePath $LogFile -Append -Encoding UTF8
                 $success = $true
@@ -208,22 +202,13 @@ Command: "$MSDeployPath" $($sanitizedArgs -join ' ')
         # Output progress
         if ($success) {
             Write-Host "[✓] $domain - Success" -ForegroundColor Green
-            return @{
-                Domain  = $domain
-                Success = $true
-                Message = "Completed successfully"
-            }
+            return @{ Domain = $domain; Success = $true; Message = "Completed successfully" }
         }
         else {
             Write-Host "[✗] $domain - Failed" -ForegroundColor Red
-            return @{
-                Domain  = $domain
-                Success = $false
-                Message = "Failed. See log: $LogFile"
-            }
+            return @{ Domain = $domain; Success = $false; Message = "Failed. See log: $LogFile" }
         }
-
-    } -ArgumentList @($Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf) -ThrottleLimit $MaxParallel
+    } -ThrottleLimit $using:MaxParallel
 
     $endTime = Get-Date
     $duration = $endTime - $startTime
