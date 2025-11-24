@@ -6,7 +6,7 @@
 
 .DESCRIPTION
     This script reads configuration from pull-iis-sites.config.json and uses MSDeploy 
-    to pull IIS site configurations from a remote server in parallel with automatic retries.
+    to pull IIS site configurations from a remote server in parallel.
 
 .PARAMETER ConfigFile
     Path to the JSON configuration file.
@@ -96,13 +96,15 @@ try {
     $LogDir = if ($config.LogDir) { $config.LogDir } else { ".\logs" }
     $MaxParallel = if ($config.MaxParallel) { $config.MaxParallel } else { 8 }
     $MSDeployPath = if ($config.MSDeployPath) { $config.MSDeployPath } else { "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" }
-    $MaxRetries = if ($config.MaxRetries) { $config.MaxRetries } else { 3 }
-    $RetryDelaySeconds = if ($config.RetryDelaySeconds) { $config.RetryDelaySeconds } else { 5 }
+    $MaxWebsites = if ($config.MaxWebsites) { $config.MaxWebsites } else { 0 }
     $WhatIf = if ($config.WhatIf) { $config.WhatIf } else { $false }
 
     Write-ColorOutput "Target Server: $Computer" -Type Info
     Write-ColorOutput "Username: $Username" -Type Info
     Write-ColorOutput "Max Parallel: $MaxParallel" -Type Info
+    if ($MaxWebsites -gt 0) {
+        Write-ColorOutput "Max Websites: $MaxWebsites" -Type Info
+    }
 
     # Validate MSDeploy
     if (!(Test-Path $MSDeployPath)) {
@@ -131,7 +133,13 @@ try {
         exit 1
     }
     
-    Write-ColorOutput "Found $($Domains.Count) domain(s) to process" -Type Success
+    # Limit the number of websites if MaxWebsites is set
+    if ($MaxWebsites -gt 0 -and $Domains.Count -gt $MaxWebsites) {
+        $Domains = $Domains | Select-Object -First $MaxWebsites
+        Write-ColorOutput "Limited to first $MaxWebsites domain(s) from $DomainListFile" -Type Warning
+    }
+    
+    Write-ColorOutput "Processing $($Domains.Count) domain(s)" -Type Success
     
     if ($WhatIf) {
         Write-ColorOutput "Running in WHATIF mode - no actual changes will be made" -Type Warning
@@ -142,7 +150,7 @@ try {
     # Execute parallel processing
     $startTime = Get-Date
     $results = $Domains | ForEach-Object -Parallel {
-        param($Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf, $MaxRetries, $RetryDelaySeconds)
+        param($Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf)
         
         $domain = $_
         $LogFile = Join-Path $LogDir "$domain.log"
@@ -174,37 +182,27 @@ Command: "$MSDeployPath" $($sanitizedArgs -join ' ')
 "@
         $logHeader | Out-File -FilePath $LogFile -Encoding UTF8
 
-        # Retry Loop
+        # Execute MSDeploy
         $success = $false
-        for ($i = 1; $i -le $MaxRetries; $i++) {
-            try {
-                $timestamp = Get-Date -Format "HH:mm:ss"
-                "[$timestamp] Attempt $i of $MaxRetries..." | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                
-                # Execute MSDeploy
-                $output = & $MSDeployPath $msdeployArgs 2>&1
-                $output | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                
-                if ($LASTEXITCODE -eq 0) {
-                    "[$timestamp] Exit Code: 0 (Success)" | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                    $success = $true
-                    break
-                }
-                else {
-                    "[$timestamp] Exit Code: $LASTEXITCODE (Failed)" | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                    if ($i -lt $MaxRetries) {
-                        "[$timestamp] Waiting $RetryDelaySeconds seconds before retry..." | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                        Start-Sleep -Seconds $RetryDelaySeconds
-                    }
-                }
+        try {
+            $timestamp = Get-Date -Format "HH:mm:ss"
+            "[$timestamp] Executing..." | Out-File -FilePath $LogFile -Append -Encoding UTF8
+            
+            # Execute MSDeploy
+            $output = & $MSDeployPath $msdeployArgs 2>&1
+            $output | Out-File -FilePath $LogFile -Append -Encoding UTF8
+            
+            if ($LASTEXITCODE -eq 0) {
+                "[$timestamp] Exit Code: 0 (Success)" | Out-File -FilePath $LogFile -Append -Encoding UTF8
+                $success = $true
             }
-            catch {
-                $errorMsg = $_.Exception.Message
-                "[$timestamp] Error: $errorMsg" | Out-File -FilePath $LogFile -Append -Encoding UTF8
-                if ($i -lt $MaxRetries) {
-                    Start-Sleep -Seconds $RetryDelaySeconds
-                }
+            else {
+                "[$timestamp] Exit Code: $LASTEXITCODE (Failed)" | Out-File -FilePath $LogFile -Append -Encoding UTF8
             }
+        }
+        catch {
+            $errorMsg = $_.Exception.Message
+            "[$timestamp] Error: $errorMsg" | Out-File -FilePath $LogFile -Append -Encoding UTF8
         }
 
         # Output progress
@@ -217,15 +215,15 @@ Command: "$MSDeployPath" $($sanitizedArgs -join ' ')
             }
         }
         else {
-            Write-Host "[✗] $domain - Failed after $MaxRetries attempts" -ForegroundColor Red
+            Write-Host "[✗] $domain - Failed" -ForegroundColor Red
             return @{
                 Domain  = $domain
                 Success = $false
-                Message = "Failed after $MaxRetries attempts. See log: $LogFile"
+                Message = "Failed. See log: $LogFile"
             }
         }
 
-    } -ArgumentList $Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf, $MaxRetries, $RetryDelaySeconds -ThrottleLimit $MaxParallel
+    } -ArgumentList @($Computer, $Username, $Password, $LogDir, $MSDeployPath, $WhatIf) -ThrottleLimit $MaxParallel
 
     $endTime = Get-Date
     $duration = $endTime - $startTime

@@ -6,7 +6,6 @@
     "LogDir": "./logs",
     "MaxParallel": 8,
     "MSDeployPath": "C:\\Program Files\\IIS\\Microsoft Web Deploy V3\\msdeploy.exe",
-    "MaxRetries": 3,
-    "RetryDelaySeconds": 5,
+    "MaxWebsites": 10,
     "WhatIf": false
 }
