@@ -112,7 +112,6 @@ $flags = @(
     "-xml",
     "-allowUntrusted",
     "-whatIf",
-    "-allowUntrusted",
     "-verbose"
 )
 

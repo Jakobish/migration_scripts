@@ -2,7 +2,7 @@
 
 > Visual command builder for Microsoft Web Deploy (msdeploy) - Build and execute IIS migration commands with an intuitive graphical interface
 
-## 📋 Table of Contents
+## Table of Contents
 
 - [Overview](#overview)
 - [Prerequisites](#prerequisites)
@@ -13,7 +13,7 @@
 - [Command Preview and Execution](#command-preview-and-execution)
 - [State Management](#state-management)
 - [Common Scenarios](#common-scenarios)
-- [Troubleshooting](#troubleshooting)
+- [Troubleshooting](troubleshooting)
 - [Advanced Features](#advanced-features)
 
 ## Overview
@@ -59,7 +59,7 @@ The **GUI Migration Tool** (`gui-migrate.ps1`) is a PowerShell-based graphical a
 
 ### Method 1: Direct PowerShell Execution
 
-```powershell
+```bash
 .\gui-migrate.ps1
 ```
 
@@ -67,11 +67,12 @@ Run this command from an elevated PowerShell session in the migration scripts di
 
 ### Method 2: Windows Batch Launcher (Recommended for Windows)
 
-```cmd
+```bash
 start-gui.bat
 ```
 
 Double-click `start-gui.bat` or run from command prompt. This automatically:
+
 - Launches PowerShell with administrator privileges
 - Handles UAC elevation
 - Validates prerequisites
@@ -83,12 +84,13 @@ Double-click `start-gui.bat` or run from command prompt. This automatically:
 ```
 
 For macOS users with PowerShell Core installed. Requires:
+
 - PowerShell Core (`pwsh`)
 - Administrator access via sudo
 
 ### Method 4: Remote Execution
 
-```powershell
+```pwsh
 .\invoke-remote-gui.ps1 -ComputerName "192.168.1.100" -Username "admin"
 ```
 
@@ -98,7 +100,7 @@ Launch the GUI on a remote server. See the main [README.md](../README.md) for de
 
 The GUI is organized into several key sections:
 
-```
+```txt
 ┌─────────────────────────────────────────────────────┐
 │  Global Settings (Verb Selection)                   │
 ├─────────────────────────────────────────────────────┤
@@ -181,7 +183,7 @@ Select the type of source content:
 Configure how to connect to the source:
 
 - **IP Address/Computer Name**: Target machine (leave blank for local)
-- **Authentication Type**: 
+- **Authentication Type**:
   - `NTLM` (default for Windows auth)
   - `Basic` (username/password)
   - `Negotiate` (auto-negotiate)
@@ -191,6 +193,7 @@ Configure how to connect to the source:
 #### Site Selection
 
 For `appHostConfig` provider:
+
 - **Site Dropdown**: Auto-populated with IIS sites from the source server
 - **Refresh Button**: Reload the site list
 
@@ -211,12 +214,12 @@ Identical structure to source configuration, but with an additional `auto` provi
 
 Select global msdeploy command-line flags:
 
-| Flag | Description | When to Use |
-|------|-------------|-------------|
-| `-xml` | Output results in XML format | For programmatic parsing |
-| `-allowUntrusted` | Allow untrusted SSL certificates | Self-signed certificates |
-| `-whatIf` | Dry-run mode (no changes) | Test before actual migration |
-| `-verbose` | Show detailed output | Troubleshooting |
+| Flag              | Description                      | When to Use                  |
+| ----------------- | -------------------------------- | ---------------------------- |
+| `-xml`            | Output results in XML format     | For programmatic parsing     |
+| `-allowUntrusted` | Allow untrusted SSL certificates | Self-signed certificates     |
+| `-whatIf`         | Dry-run mode (no changes)        | Test before actual migration |
+| `-verbose`        | Show detailed output             | Troubleshooting              |
 
 > **Tip**: Always use `-whatIf` first to preview changes before executing actual migrations.
 
@@ -224,12 +227,12 @@ Select global msdeploy command-line flags:
 
 Control what gets deployed or preserved:
 
-| Rule | Description |
-|------|-------------|
-| `enableRule:DoNotDelete` | Prevent deletion of existing content |
-| `enableRule:DoNotDeleteRule` | Prevent deletion based on rules |
-| `disableRule:AppPool` | Don't synchronize application pools |
-| `disableRule:FilePath` | Exclude file path synchronization |
+| Rule                         | Description                          |
+| ---------------------------- | ------------------------------------ |
+| `enableRule:DoNotDelete`     | Prevent deletion of existing content |
+| `enableRule:DoNotDeleteRule` | Prevent deletion based on rules      |
+| `disableRule:AppPool`        | Don't synchronize application pools  |
+| `disableRule:FilePath`       | Exclude file path synchronization    |
 
 #### Enable Link Extensions Tab
 
@@ -245,17 +248,18 @@ Enable link extensions for dependency synchronization:
 
 Disable specific link extensions:
 
-| Link Extension | Description |
-|----------------|-------------|
-| `disableLink:AppPoolExtension` | Don't sync application pool extensions |
-| `disableLink:ContentExtension` | Don't sync content extensions |
-| `disableLink:CertificateExtension` | Don't sync SSL certificates |
+| Link Extension                     | Description                            |
+| ---------------------------------- | -------------------------------------- |
+| `disableLink:AppPoolExtension`     | Don't sync application pool extensions |
+| `disableLink:ContentExtension`     | Don't sync content extensions          |
+| `disableLink:CertificateExtension` | Don't sync SSL certificates            |
 
 ## Usage Guide
 
 ### Step-by-Step: Basic Migration
 
 1. **Launch the GUI**
+
    ```powershell
    .\gui-migrate.ps1
    ```
@@ -320,14 +324,15 @@ The command preview shows the exact msdeploy command that will be executed:
 
 ### Execution Options
 
-| Button | Action |
-|--------|--------|
-| **Execute Command** | Run the command immediately and display output |
-| **Copy Command** | Copy the command to clipboard for manual execution |
+| Button              | Action                                             |
+| ------------------- | -------------------------------------------------- |
+| **Execute Command** | Run the command immediately and display output     |
+| **Copy Command**    | Copy the command to clipboard for manual execution |
 
 ### Activity Log
 
 The activity log shows:
+
 - Command execution start time
 - Real-time output from msdeploy
 - Success or error messages
@@ -341,6 +346,7 @@ All executions are also logged to: `site-logs/gui-msdeploy-YYYYMMDD-HHMMSS.log`
 ### Auto-Save Feature
 
 The GUI automatically saves your current state when you:
+
 - Change any configuration setting
 - Close the application
 
@@ -366,7 +372,7 @@ Configuration state is saved to: `gui-state.xml` in the script root directory
 
 **Goal**: Migrate a local IIS site to a remote server
 
-```
+```markdown
 Source:
 - Provider: appHostConfig
 - Site: Default Web Site
@@ -388,7 +394,7 @@ Flags:
 
 **Goal**: Create a backup package of a remote site
 
-```
+```bash
 Source:
 - Provider: appHostConfig
 - Site: Production Site
@@ -410,27 +416,30 @@ Flags: -verbose
 
 **Goal**: Test migration without making changes
 
-```
+markdown
 (Configure as normal, but add:)
 
 Flags:
+
 - -whatIf
 - -verbose
 
 Result: Shows what would be done without making changes
-```
 
 ### Scenario 4: Content-Only Migration
 
 **Goal**: Migrate just the content files, not IIS configuration
 
-```
+```bash
+
 Source:
+
 - Provider: contentPath
 - Main Value: C:\inetpub\wwwroot\MySite
 - Connection: (blank - local)
 
 Destination:
+
 - Provider: contentPath
 - Main Value: C:\inetpub\wwwroot\MySite
 - IP: 192.168.1.100
@@ -446,8 +455,10 @@ Flags: -verbose
 
 **Goal**: View site configuration without making changes
 
-```
+```bash
+
 Source:
+
 - Provider: appHostConfig
 - Site: MySite
 - Connection: (blank - local)
@@ -456,6 +467,7 @@ Destination: (not needed for dump)
 
 Verb: dump
 Flags: -verbose
+
 ```
 
 ## Troubleshooting
@@ -467,15 +479,17 @@ Flags: -verbose
 **Cause**: msdeploy.exe is not installed or not in the expected location
 
 **Solution**:
+
 - Install Microsoft Web Deploy V3
 - Verify installation at: `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe`
-- Download: https://www.microsoft.com/en-us/download/details.aspx?id=43717
+- Download: <https://www.microsoft.com/en-us/download/details.aspx?id=43717>
 
 #### 2. "This GUI must be launched from an elevated PowerShell session"
 
 **Cause**: PowerShell is not running as Administrator
 
 **Solution**:
+
 - Close PowerShell
 - Right-click PowerShell and select "Run as Administrator"
 - Or use `start-gui.bat` which handles elevation automatically
@@ -485,6 +499,7 @@ Flags: -verbose
 **Cause**: IIS management tools are not installed
 
 **Solution**:
+
 ```powershell
 Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 ```
@@ -494,6 +509,7 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 **Cause**: No IIS sites found or permission issues
 
 **Solution**:
+
 - Verify IIS is installed: `Get-Service W3SVC`
 - Check that sites exist: `Get-ChildItem IIS:\Sites`
 - Click the "Refresh" button next to the site dropdown
@@ -504,6 +520,7 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 **Cause**: Incorrect credentials or authentication type
 
 **Solution**:
+
 - Verify username and password
 - Try different authentication types (NTLM vs Basic)
 - For NTLM, use format: `DOMAIN\username`
@@ -516,6 +533,7 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 **Cause**: Various msdeploy errors
 
 **Solution**:
+
 - Check the Activity Log for specific error messages
 - Review the log file in `site-logs/`
 - Use `-whatIf` flag to test the command first
@@ -526,25 +544,29 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 ### Diagnostic Steps
 
 1. **Test with -whatIf**
-   ```
+
+   ```markdown
    Enable -whatIf flag and execute
    Review what would be changed
    ```
 
 2. **Enable Verbose Logging**
-   ```
+
+   ```markdown
    Enable -verbose flag
    Review detailed output in Activity Log
    ```
 
 3. **Check Log Files**
-   ```
+
+   ```markdown
    Navigate to site-logs/ directory
    Open the latest gui-msdeploy-*.log file
    Look for ERROR or WARNING entries
    ```
 
 4. **Test Connectivity**
+
    ```powershell
    # Test remote server connectivity
    Test-NetConnection -ComputerName <IP> -Port 8172
@@ -554,6 +576,7 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
    ```
 
 5. **Verify Credentials**
+
    ```powershell
    # Test credentials manually
    $cred = Get-Credential
@@ -566,11 +589,11 @@ Add-WindowsFeature Web-Mgmt-Tools, Web-Scripting-Tools, Web-Mgmt-Console
 
 The GUI is built on a modular architecture:
 
-| Module | Purpose | Location |
-|--------|---------|----------|
-| `GuiLayout.ps1` | UI layout and form creation | `lib/GuiLayout.ps1` |
-| `GuiHelpers.psm1` | Helper functions for GUI operations | `lib/GuiHelpers.psm1` |
-| `GuiStateHelpers.psm1` | State save/load functionality | `lib/GuiStateHelpers.psm1` |
+| Module                 | Purpose                             | Location                   |
+| ---------------------- | ----------------------------------- | -------------------------- |
+| `GuiLayout.ps1`        | UI layout and form creation         | `lib/GuiLayout.ps1`        |
+| `GuiHelpers.psm1`      | Helper functions for GUI operations | `lib/GuiHelpers.psm1`      |
+| `GuiStateHelpers.psm1` | State save/load functionality       | `lib/GuiStateHelpers.psm1` |
 
 ### Extending the GUI
 
@@ -612,7 +635,7 @@ For multiple migrations:
 
 ## Tips and Best Practices
 
-### 🎯 Best Practices
+### Migration Best Practices
 
 1. **Always Test First**
    - Use `-whatIf` flag before any production migration
@@ -638,7 +661,7 @@ For multiple migrations:
    - Watch for warnings and errors during execution
    - Review log files after migration
 
-### ⚡ Performance Tips
+### Performance Tips
 
 1. Use `contentPath` provider for faster content-only migrations
 2. Disable unnecessary link extensions to speed up sync
@@ -664,21 +687,21 @@ For multiple migrations:
 
 ### Keyboard Shortcuts
 
-| Shortcut | Action |
-|----------|--------|
-| `Tab` | Navigate between fields |
-| `Space` | Toggle checkboxes |
-| `Enter` | Activate focused button |
+| Shortcut | Action                    |
+| -------- | ------------------------- |
+| `Tab`    | Navigate between fields   |
+| `Space`  | Toggle checkboxes         |
+| `Enter`  | Activate focused button   |
 | `Ctrl+C` | Copy (in Command Preview) |
 
 ### File Locations
 
-| Item | Location |
-|------|----------|
-| Configuration State | `gui-state.xml` |
-| Execution Logs | `site-logs/gui-msdeploy-*.log` |
-| GUI Script | `gui-migrate.ps1` |
-| Helper Modules | `lib/` directory |
+| Item                | Location                       |
+| ------------------- | ------------------------------ |
+| Configuration State | `gui-state.xml`                |
+| Execution Logs      | `site-logs/gui-msdeploy-*.log` |
+| GUI Script          | `gui-migrate.ps1`              |
+| Helper Modules      | `lib/` directory               |
 
 ### Default Values
 
@@ -692,7 +715,8 @@ For multiple migrations:
 
 ---
 
-**Need Help?** 
+**Need Help?**
+
 - Check the [Troubleshooting](#troubleshooting) section
 - Review log files in `site-logs/`
 - See the main [README.md](../README.md) for more examples

@@ -1,3 +1,6 @@
+
+*.DS_Store
+*.txt
 # Created by https://www.toptal.com/developers/gitignore/api/macos,powershell
 # Edit at https://www.toptal.com/developers/gitignore?templates=macos,powershell
 
@@ -43,3 +46,4 @@ Temporary Items
 *.dll
 
 # End of https://www.toptal.com/developers/gitignore/api/macos,powershell
+.roo/
