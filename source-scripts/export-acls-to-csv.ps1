@@ -5,4 +5,4 @@ Get-ChildItem "d:\domains" -Recurse | Where-Object { $_.PsIsContainer } | ForEac
     (Get-Acl $Path).Access | Where-Object { !$_.IsInherited } | Select-Object `
     @{n = 'Path'; e = { $Path } }, IdentityReference, AccessControlType, `
         InheritanceFlags, PropagationFlags, FileSystemRights
-} | Export-CSV "D:\Permissions.csv"
+} | Export-CSV ".\Permissions.csv"

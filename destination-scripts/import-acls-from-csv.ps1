@@ -1,5 +1,5 @@
 
-$par = Import-Csv -Path "d:\Permissions.csv"
+$par = Import-Csv -Path ".\Permissions.csv"
 foreach ( $i in $par ) { 
     $path = $i.Path
     $IdentityReference = $i.IdentityReference

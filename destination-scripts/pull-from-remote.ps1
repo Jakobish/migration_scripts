@@ -4,7 +4,7 @@ $SourceServer = "1.1.1.1"
 $User = "administrator"
 $Password = "YourAdminPassword" # IMPORTANT: In production, use Get-Credential or a secure secret store
 $AuthType = "NTLM" 
-$LocalOutputFile = "C:\Migration\SiteInventory.xml"
+$LocalOutputFile = ".\SiteInventory.xml"
 $MSDeployPath = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe" 
 # Command to run remotely: list all sites and output in XML
 $AppCmdCommand = "%windir%\system32\inetsrv\appcmd.exe list site" 
