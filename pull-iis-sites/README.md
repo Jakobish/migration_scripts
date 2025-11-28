@@ -20,7 +20,7 @@ Create or edit `pull-iis-sites.config.json`:
 ```json
 {
   "Computer": "10.0.0.50",
-  "Username": "domain\\admin",
+  "Username": "admin",
   "Password": "YourPasswordHere",
   "DomainListFile": "./domains.txt",
   "LogDir": "./logs",
@@ -63,18 +63,18 @@ Set `"WhatIf": true` in config file to preview without making changes.
 
 ## Configuration Options
 
-| Setting | Required | Default | Description |
-|---------|----------|---------|-------------|
-| `Computer` | Yes | - | Remote server hostname/IP |
-| `Username` | Yes | - | Authentication username |
-| `Password` | Yes | - | Authentication password |
-| `DomainListFile` | Yes | - | Path to domain list file |
-| `LogDir` | No | `./logs` | Directory for log files |
-| `MaxParallel` | No | `8` | Max concurrent operations |
-| `MSDeployPath` | No | `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe` | Path to msdeploy.exe |
-| `MaxRetries` | No | `3` | Retry attempts per domain |
-| `RetryDelaySeconds` | No | `5` | Delay between retries |
-| `WhatIf` | No | `false` | Preview mode |
+| Setting             | Required | Default                                                     | Description               |
+| ------------------- | -------- | ----------------------------------------------------------- | ------------------------- |
+| `Computer`          | Yes      | -                                                           | Remote server hostname/IP |
+| `Username`          | Yes      | -                                                           | Authentication username   |
+| `Password`          | Yes      | -                                                           | Authentication password   |
+| `DomainListFile`    | Yes      | -                                                           | Path to domain list file  |
+| `LogDir`            | No       | `./logs`                                                    | Directory for log files   |
+| `MaxParallel`       | No       | `8`                                                         | Max concurrent operations |
+| `MSDeployPath`      | No       | `C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe` | Path to msdeploy.exe      |
+| `MaxRetries`        | No       | `3`                                                         | Retry attempts per domain |
+| `RetryDelaySeconds` | No       | `5`                                                         | Delay between retries     |
+| `WhatIf`            | No       | `false`                                                     | Preview mode              |
 
 ## Output
 

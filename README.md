@@ -2,9 +2,9 @@
 
 > A comprehensive toolkit for migrating IIS websites, application pools, and configurations between Windows servers using Microsoft Web Deploy
 
-[![License: MIT] (https://img.shields.io/badge/License-MIT-yellow.svg)] (<https://opensource.org/licenses/MIT>)
-[![PowerShell] (https://img.shields.io/badge/PowerShell-5.1+-blue.svg)] (<https://docs.microsoft.com/en-us/powershell/>)
-[![Platform] (https://img.shields.io/badge/Platform-Windows-lightgrey.svg)] (<https://www.microsoft.com/windows/>)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](<https://opensource.org/licenses/MIT>)
+[![PowerShell](https://img.shields.io/badge/PowerShell-5.1+-blue.svg)](<https://docs.microsoft.com/en-us/powershell/>)
+[![Platform](https://img.shields.io/badge/Platform-Windows-lightgrey.svg)](<https://www.microsoft.com/windows/>)
 
 ## 📋 Table of Contents
 
@@ -741,7 +741,7 @@ This project is licensed under the MIT License - see the [LICENSE] (LICENSE) fil
 
 ### Getting Help
 
-- **GitHub Issues**: [Report bugs or request features] (<https://github.com/yourusername/iis-migration-scripts/issues>)
+- **GitHub Issues**: [Report bugs or request features](<https://github.com/yourusername/iis-migration-scripts/issues>)
 - **Documentation**: Check this README and inline code comments
 - **Logs**: Review the log files for detailed error information
 
